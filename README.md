@@ -5,7 +5,8 @@
 If you have any issues or suggestions, feel free to PR, create an issue or join my discord: https://discord.gg/FzPehMQaBQ
 
 ## Preview
-<img width="1920" height="1080" alt="FiveM_GTAProcess_6C1HAisT6o" src="https://github.com/user-attachments/assets/46561d25-7998-4134-ad11-4d33a22a0674" />
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/3c85e64d-7330-4b7d-a750-08ab925cac9c" />
+
 
 <img width="1920" height="1080" alt="FiveM_GTAProcess_VhzFiz3DF4" src="https://github.com/user-attachments/assets/eb7a1120-3220-474b-bbc7-981bc9e5694c" />
 
