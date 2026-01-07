@@ -27,41 +27,58 @@ const InventoryHotbar: React.FC = () => {
       <div className="hotbar-container">
         {items.map((item) => (
           <div
-            className={`hotbar-slot ${isSlotWithItem(item) ? 'hotbar-slot-filled' : 'hotbar-slot-empty'}`}
+            className={`hotbar-slot ${isSlotWithItem(item) ? '' : 'hotbar-slot-empty'}`}
             key={`hotbar-${item.slot}`}
           >
-            {/* Slot number badge */}
-            <div className="hotbar-slot-number">{item.slot}</div>
-
-            {/* Item content */}
             {isSlotWithItem(item) ? (
-              <>
-                <div
+              <div className="hotbar-item-wrapper">
+                {/* Noise texture */}
+                <div className="hotbar-slot-noise" />
+
+                {/* Slot number - top left */}
+                <div className="hotbar-slot-number">{item.slot}</div>
+
+                {/* Count badge - top right */}
+                {item.count && item.count > 0 && (
+                  <div className="hotbar-slot-count">{item.count}</div>
+                )}
+
+                {/* Item image */}
+                <img
+                  src={getItemUrl(item as SlotWithItem)}
+                  alt={item.name}
                   className="hotbar-slot-image"
-                  style={{
-                    backgroundImage: `url(${getItemUrl(item as SlotWithItem)}`,
-                  }}
+                  draggable={false}
                 />
-                <div className="hotbar-slot-info">
-                  {item.count && item.count > 1 && (
-                    <span className="hotbar-slot-count">{item.count}x</span>
-                  )}
+
+                {/* Item label */}
+                <div className="hotbar-slot-label">
+                  {item.metadata?.label ? item.metadata.label : Items[item.name]?.label || item.name}
                 </div>
+
+                {/* Durability bar */}
                 {item?.durability !== undefined && (
                   <div className="hotbar-slot-durability">
                     <WeightBar percent={item.durability} durability />
                   </div>
                 )}
-                <div className="hotbar-slot-label">
-                  {item.metadata?.label ? item.metadata.label : Items[item.name]?.label || item.name}
+              </div>
+            ) : (
+              <>
+                <div className="hotbar-slot-number">{item.slot}</div>
+                <div className="hotbar-empty-icon-wrapper">
+                  <div className="hotbar-empty-icon-bg">
+                    <svg
+                      className="hotbar-empty-icon"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </div>
                 </div>
               </>
-            ) : (
-              <div className="hotbar-slot-empty-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
             )}
           </div>
         ))}
