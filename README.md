@@ -13,11 +13,12 @@ If you have any issues or suggestions, feel free to PR, create an issue or join 
 
 ## Works Great With
 
+<img width="3840" height="2160" alt="image_2026-01-05_182906460" src="https://github.com/user-attachments/assets/127eef89-a41d-4fd7-820d-9bb15c28a62f" />
+
+
 Advanced Crafting (Source): https://fivem.samueldev.shop/product/7203651
 
 Advanced Crafting (Encrypted): https://fivem.samueldev.shop/product/7203650
-
-Preview for Crafting: https://www.youtube.com/watch?v=X7yAq5xOlm0&t=46s
 
 ## What's Different
 
