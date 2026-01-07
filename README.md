@@ -7,6 +7,7 @@ If you have any issues or suggestions, feel free to PR, create an issue or join 
 ## Works Great With
 
 **sd-crafting** (Source): https://fivem.samueldev.shop/product/7203651
+
 **sd-crafting** (Encrypted): https://fivem.samueldev.shop/product/7203650
 
 ## What's Different
@@ -22,7 +23,7 @@ If you have any issues or suggestions, feel free to PR, create an issue or join 
 - **Modern tooltips** - Redesigned item tooltips with better formatting
 - **Item notifications** - Styled popup notifications for item actions (use, give, receive)
 
-# original ox_inventory
+# Original ox_inventory
 
 A complete inventory system for FiveM, implementing items, weapons, shops, and more without any strict framework dependency.
 
