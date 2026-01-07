@@ -1,4 +1,28 @@
-# ox_inventory
+# ox_inventory (SD UI Fork)
+
+> **This is a modified fork of [ox_inventory](https://github.com/overextended/ox_inventory) with a completely redesigned UI to match the visual style of sd-crafting.**
+
+If you have any issues or suggestions, feel free to PR, create an issue or join my discord: https://discord.gg/FzPehMQaBQ
+
+## Works Great With
+
+**sd-crafting** (Source): https://fivem.samueldev.shop/product/7203651
+**sd-crafting** (Encrypted): https://fivem.samueldev.shop/product/7203650
+
+## What's Different
+
+- **Completely redesigned UI** - Modern dark theme matching sd-crafting's visual style
+- **Search functionality** - Filter items by name or label in any inventory
+- **Noise texture overlays** - Subtle noise effects with overlay blend mode for depth
+- **Weight display** - Color-coded weight indicator (green/yellow/red based on capacity)
+- **Item count display** - Shows total item count in inventory header
+- **Improved slot design** - Rounded corners, better spacing, and cleaner item presentation
+- **Hotbar slot numbers** - Clear slot indicators for quick-use items (1-5)
+- **Durability bars** - Color-gradient durability indicators on items
+- **Modern tooltips** - Redesigned item tooltips with better formatting
+- **Item notifications** - Styled popup notifications for item actions (use, give, receive)
+
+# original ox_inventory
 
 A complete inventory system for FiveM, implementing items, weapons, shops, and more without any strict framework dependency.
 
