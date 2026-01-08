@@ -5,6 +5,7 @@ import { getTotalWeight } from '../../helpers';
 import { useAppSelector } from '../../store';
 import { useIntersection } from '../../hooks/useIntersection';
 import { Items } from '../../store/items';
+import { fetchNui } from '../../utils/fetchNui';
 
 const PAGE_SIZE = 30;
 
@@ -162,6 +163,8 @@ const InventoryGrid: React.FC<{ inventory: Inventory }> = ({ inventory }) => {
               (e.target as HTMLInputElement).focus();
             }}
             onMouseDown={(e) => e.stopPropagation()}
+            onFocus={() => fetchNui('lockControls', true)}
+            onBlur={() => fetchNui('lockControls', false)}
             className="inventory-search-input"
           />
           {searchTerm ? (

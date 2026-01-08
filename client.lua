@@ -1770,6 +1770,11 @@ RegisterNUICallback('exit', function(_, cb)
 	cb(1)
 end)
 
+RegisterNUICallback('lockControls', function(data, cb)
+	SetNuiFocusKeepInput(not data)
+	cb(1)
+end)
+
 lib.callback.register('ox_inventory:startCrafting', function(id, recipe)
 	recipe = CraftingBenches[id].items[recipe]
 
