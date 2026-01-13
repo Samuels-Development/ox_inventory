@@ -803,6 +803,7 @@ button:active {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
   z-index: 10;
   pointer-events: none;
 }
