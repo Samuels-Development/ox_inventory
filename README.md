@@ -3,7 +3,7 @@
 # ox_inventory (SD UI)
 
 **A rebuilt interface for [ox_inventory](https://github.com/CommunityOx/ox_inventory).**
-Equipment slots, worn backpacks that open as their own panel, item rarities, an optional spatial grid, and a settings panel players can tune themselves.
+Equipment slots, worn backpacks that open as their own panel, item rarities, your choice of a slot or grid inventory, and a settings panel players can tune themselves.
 
 Everything from upstream ox_inventory still works: items, weapons, shops, stashes, crafting, and the same exports. Only the interface and the systems listed below are new.
 
@@ -32,7 +32,7 @@ Everything from upstream ox_inventory still works: items, weapons, shops, stashe
 
 <img alt="A worn backpack open as its own panel" src=".github/preview/inventory-backpack.png" width="100%" />
 
-<img alt="The spatial grid layout, where items occupy a footprint" src=".github/preview/inventory-grid.png" width="100%" />
+<img alt="The grid inventory, where every item occupies a footprint in cells" src=".github/preview/inventory-grid.png" width="100%" />
 
 <img alt="The in-game settings panel" src=".github/preview/inventory-settings.png" width="100%" />
 
@@ -43,7 +43,7 @@ Everything from upstream ox_inventory still works: items, weapons, shops, stashe
 | **Equipment slots** | Eleven wearable slots around a character figure: hat, glasses, mask, earpiece, torso, armour, backpack, gloves, belt, legs, shoes. Items declare which slot they fit. |
 | **Worn backpacks** | A bag in the backpack slot opens as a second panel beside your inventory, with its own weight and slot budget. |
 | **Item rarities** | Six tiers that colour the slot border and tooltip. Sorting and filtering understand them. |
-| **Two layouts** | Classic fixed slots, or a spatial grid where items occupy a footprint and can be rotated. |
+| **Slot or grid inventory** | Pick one. Slots is the classic fixed-slot inventory. Grid is a Tarkov style inventory where every item occupies a footprint in cells and can be rotated. |
 | **Settings panel** | Players tune scale, spacing, contrast, fonts, tooltips, notifications and colour theme in game. Preferences persist per character. |
 | **Injury markers** | Optional overlay marking wounds on the character figure by body part, type and severity. |
 | **Fast slots** | The first five slots surfaced as a labelled quick-use row bound to the number keys. |
@@ -60,7 +60,7 @@ Everything below lives in **`data/ui.lua`**.
 layout = 'slots',   -- 'slots' | 'grid'
 ```
 
-`slots` is the classic fixed-slot inventory. `grid` gives every item a footprint measured in cells:
+Pick one or the other. `slots` is the classic fixed-slot inventory, where a slot holds one item whatever its size. `grid` is a Tarkov style inventory, where every item occupies a footprint measured in cells:
 
 ```lua
 grid = {
