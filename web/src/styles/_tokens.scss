@@ -196,6 +196,11 @@
   -webkit-text-stroke: 0.023em currentColor;
 }
 
+:focus,
+:focus-visible {
+  outline: none;
+}
+
 .focus-ring :focus-visible {
   outline: max(2px, #{hair(0.1852)}) solid var(--ox-main);
   outline-offset: max(2px, #{hair(0.1852)});

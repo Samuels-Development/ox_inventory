@@ -67,7 +67,7 @@
       background-color: var(--ox-slot-hover);
     }
 
-    &:focus {
+    &:focus-visible {
       border-color: var(--ox-stroke-30);
       background-color: var(--ox-slot-hover);
       color: var(--ox-text-1);
