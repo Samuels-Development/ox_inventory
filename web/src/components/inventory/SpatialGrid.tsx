@@ -9,7 +9,13 @@ import { fetchNui } from '../../utils/fetchNui';
 import { closeTooltip } from '../../store/tooltip';
 import { onBuy } from '../../dnd/onBuy';
 import { onCraft } from '../../dnd/onCraft';
-import { getGridDimensions, onSpatialDrop, resolveSpatialTarget, SpatialTarget } from '../../dnd/onSpatialDrop';
+import {
+  getGridDimensions,
+  isBlockedContainerMove,
+  onSpatialDrop,
+  resolveSpatialTarget,
+  SpatialTarget,
+} from '../../dnd/onSpatialDrop';
 import useRotateKey from '../../hooks/useRotateKey';
 import SpatialSlot, { spatialCellStyle } from './SpatialSlot';
 import InventoryFilters, { FilterId, InventorySort, matchesFilter, usePanelSortMode } from './InventoryFilters';
@@ -35,6 +41,7 @@ const resolveCellDrop = (
   rotated: boolean
 ): SpatialTarget | undefined => {
   if (!source?.item) return;
+  if (isBlockedContainerMove(source, inventory)) return;
 
   const sameInventory = source.inventory === inventory.type;
 

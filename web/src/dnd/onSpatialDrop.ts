@@ -7,6 +7,7 @@ import {
   getItemSize,
   getTargetInventory,
   isSlotWithItem,
+  resolveInventoryPanel,
 } from '../helpers';
 import { validateMove } from '../thunks/validateItems';
 import { store } from '../store';
@@ -41,6 +42,18 @@ export const getGridDimensions = (inventory: Inventory): GridDimensions => {
 
 export const getDragItemSize = (source: DragSource, rotated: boolean): [number, number] =>
   getItemSize({ slot: source.item.slot, name: source.item.name, metadata: { rotated } });
+
+export const isBlockedContainerMove = (source: DragSource, targetInventory: Inventory): boolean => {
+  if (!source?.item) return false;
+
+  const { inventory: state } = store.getState();
+  const sourceSlot = resolveInventoryPanel(state, source.inventory).items[source.item.slot - 1];
+  const container = sourceSlot?.metadata?.container;
+
+  if (container === undefined) return false;
+
+  return isContainerPanel(targetInventory.type) || state.rightInventory.id === container;
+};
 
 export const resolveSpatialTarget = (
   source: DragSource,
