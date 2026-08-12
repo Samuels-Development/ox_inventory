@@ -292,11 +292,6 @@ do
                 mythic    = { label = 'Mythic',    color = '#FB7185', order = 6 },
             },
         },
-        injuries = {
-            enabled = false,
-            parts = {},
-            types = {},
-        },
         theme = 'white',
         themes = {
             white = {
@@ -332,21 +327,17 @@ do
     if type(ui.grid.defaultSize) ~= 'table' then ui.grid.defaultSize = default.grid.defaultSize end
     if type(ui.clothing.slots) ~= 'table' then ui.clothing.slots = default.clothing.slots end
     if type(ui.rarity.tiers) ~= 'table' then ui.rarity.tiers = default.rarity.tiers end
-    if type(ui.injuries.parts) ~= 'table' then ui.injuries.parts = {} end
-    if type(ui.injuries.types) ~= 'table' then ui.injuries.types = {} end
 
     local layout = GetConvar('inventory:layout', '')
     local gridcolumns = GetConvarInt('inventory:gridcolumns', 0)
     local clothing = GetConvarInt('inventory:clothing', -1)
     local rarity = GetConvarInt('inventory:rarity', -1)
-    local injuries = GetConvarInt('inventory:injuries', -1)
     local theme = GetConvar('inventory:theme', '')
 
     if layout ~= '' then ui.layout = layout end
     if gridcolumns > 0 then ui.grid.columns = gridcolumns end
     if clothing >= 0 then ui.clothing.enabled = clothing == 1 end
     if rarity >= 0 then ui.rarity.enabled = rarity == 1 end
-    if injuries >= 0 then ui.injuries.enabled = injuries == 1 end
     if theme ~= '' then ui.theme = theme end
 
     if ui.layout ~= 'slots' and ui.layout ~= 'grid' then
@@ -447,13 +438,6 @@ do
     end
 
     ---Part and type keys travel to the UI as object keys and come back in from other resources via
-    ---the exports, so they are held to an identifier shape rather than accepted verbatim.
-    ---@param key any
-    ---@return boolean
-    local function isInjuryKey(key)
-        return type(key) == 'string' and #key <= 32 and key:match('^%a[%w_]*$') ~= nil
-    end
-
     ---@param value any
     ---@param fallback number
     ---@return number 0..100
@@ -467,56 +451,6 @@ do
 
         return number < 0 and 0 or number > 100 and 100 or number
     end
-
-    local injuryParts, injuryTypes = {}, {}
-    local hasInjuryPart, hasInjuryType = false, false
-
-    for key, part in pairs(ui.injuries.parts) do
-        if not isInjuryKey(key) or type(part) ~= 'table' then
-            warn(('ignoring malformed injury part \'%s\' in data/ui.lua'):format(tostring(key)))
-        else
-            -- Rebuilt field by field, so anything else the entry carries is dropped here.
-            injuryParts[key] = {
-                label = type(part.label) == 'string' and part.label or key,
-                x = clampAnchor(part.x, 50),
-                y = clampAnchor(part.y, 50),
-            }
-            hasInjuryPart = true
-        end
-    end
-
-    for key, injury in pairs(ui.injuries.types) do
-        if not isInjuryKey(key) or type(injury) ~= 'table' then
-            warn(('ignoring malformed injury type \'%s\' in data/ui.lua'):format(tostring(key)))
-        else
-            local severity = tonumber(injury.severity)
-            local color = injury.color
-
-            -- NaN would survive both comparisons in the clamp below and reach the payload.
-            if severity == nil or severity ~= severity then severity = 1 end
-
-            severity = math.floor(severity)
-
-            if not isUiColor(color) then
-                -- Falling back keeps the type usable rather than making a mistyped colour look
-                -- like a broken export; the rejected string never leaves this block.
-                warn(('injury type \'%s\' has an invalid colour - falling back to \'#9CA3AF\''):format(key))
-                color = '#9CA3AF'
-            end
-
-            injuryTypes[key] = {
-                label = type(injury.label) == 'string' and injury.label or key,
-                severity = severity < 1 and 1 or severity > 3 and 3 or severity,
-                color = color,
-            }
-            hasInjuryType = true
-        end
-    end
-
-    ui.injuries.parts = injuryParts
-    ui.injuries.types = injuryTypes
-    -- Nothing to anchor a marker to, or nothing to draw in it, is the same as "off".
-    ui.injuries.enabled = ui.injuries.enabled ~= false and hasInjuryPart and hasInjuryType
 
     if ui.layout == 'grid' then
         local gridColumns = tonumber(ui.grid and ui.grid.columns)

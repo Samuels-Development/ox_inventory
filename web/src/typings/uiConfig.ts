@@ -34,39 +34,10 @@ export interface UiConfig {
 }
 
 
-export interface InjuryPartDef {
-  label: string;
-  x: number;
-  y: number;
-}
-
-export interface InjuryTypeDef {
-  label: string;
-  severity: number;
-  color: string;
-}
-
-export interface InjuriesConfig {
-  enabled: boolean;
-  parts: Record<string, InjuryPartDef>;
-  types: Record<string, InjuryTypeDef>;
-}
-
-export interface Injury {
-  id: number;
-  part: string;
-  type: string;
-  at?: number;
-}
-
-export interface InjuriesMessage {
-  injuries?: unknown;
-}
 
 export interface UiConfigMessage extends Partial<UiConfig> {
   defaultTheme?: { name?: string; colors?: Partial<ThemeColors> };
   prefs?: Record<string, unknown>;
-  injuries?: unknown;
 }
 
 export const DEFAULT_UI_CONFIG: UiConfig = {

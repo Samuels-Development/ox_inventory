@@ -45,7 +45,6 @@ Everything from upstream ox_inventory still works: items, weapons, shops, stashe
 | **Item rarities** | Six tiers that colour the slot border and tooltip. Sorting and filtering understand them. |
 | **Slot or grid inventory** | Pick one. Slots is the classic fixed-slot inventory. Grid is a Tarkov style inventory where every item occupies a footprint in cells and can be rotated. |
 | **Settings panel** | Players tune scale, spacing, contrast, fonts, tooltips, notifications and colour theme in game. Preferences persist per character. |
-| **Injury markers** | Optional overlay marking wounds on the character figure by body part, type and severity. |
 | **Fast slots** | The first five slots surfaced as a labelled quick-use row bound to the number keys. |
 | **Colour themes** | Seven presets plus full custom colour overrides. |
 | **Resolution independent** | Every size derives from a viewport unit, so the interface holds its proportions from 1080p to ultrawide. |

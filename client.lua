@@ -116,26 +116,6 @@ local Inventory = require 'modules.inventory.client'
 ---@type table?
 local backpackInventory
 
----@type table?
-local currentInjuries
-
----Runtime state, mirrored from the server; nothing here is stored or restored. The whole list
----arrives every time, so this is a replace and not a merge.
-RegisterNetEvent('ox_inventory:setInjuries', function(injuries)
-	if source == '' then return end
-	if not shared.ui.injuries?.enabled then return end
-
-	currentInjuries = type(injuries) == 'table' and injuries or {}
-
-	-- Flushed by the `init` block below once the UI exists.
-	if not PlayerData.loaded then return end
-
-	SendNUIMessage({
-		action = 'setInjuries',
-		data = { injuries = currentInjuries }
-	})
-end)
-
 ---Only the server ever names the worn bag. `nil` is a real value here - it means the bag came off.
 RegisterNetEvent('ox_inventory:setBackpack', function(data)
     if source == '' then return end
@@ -1398,20 +1378,6 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 	-- The server resolves the character's saved theme into the same `{ name, colors }` shape the
 	-- default uses, so nothing downstream has to care whether one was stored.
 	local theme = type(playerTheme) == 'table' and type(playerTheme.colors) == 'table' and playerTheme or defaultTheme
-	-- Anchors and marker treatments only; the injuries themselves arrive by event. Left nil while
-	-- the feature is off, which omits the key from the payload entirely.
-	local injuries
-
-	if ui.injuries?.enabled then
-		-- `enabled` rides along even though the key's mere presence already means "on":
-		-- `readInjuryConfig` in web/src/store/injuries.ts requires it to be strictly `true`.
-		injuries = {
-			enabled = true,
-			parts = ui.injuries.parts,
-			types = ui.injuries.types,
-		}
-	end
-
 	if ui.clothing.enabled then
 		for i = 1, #ui.clothing.slots do
 			local slot = ui.clothing.slots[i]
@@ -1455,7 +1421,6 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 					default = ui.rarity.default,
 					tiers = ui.rarity.tiers,
 				},
-				injuries = injuries,
 				theme = theme,
 				defaultTheme = defaultTheme,
 				prefs = type(playerPrefs) == 'table' and next(playerPrefs) and playerPrefs or nil,
@@ -1464,15 +1429,6 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 	})
 
 	PlayerData.loaded = true
-
-	-- Anything the server pushed while the UI was still booting. Ordered after `init` on purpose:
-	-- the message carries state, and `init` rebuilds the store it lands in.
-	if currentInjuries then
-		SendNUIMessage({
-			action = 'setInjuries',
-			data = { injuries = currentInjuries }
-		})
-	end
 
 	if not client.disablesetupnotification then
 		lib.notify({ description = locale('inventory_setup') })

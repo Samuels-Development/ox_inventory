@@ -13,7 +13,6 @@ local TriggerEventHooks = require 'modules.hooks.server'
 local db = require 'modules.mysql.server'
 local Items = require 'modules.items.server'
 local Inventory = require 'modules.inventory.server'
-local Injuries = require 'modules.injuries.server'
 
 
 ---The only keys that may ever be stored, matching `ThemeColors` in `web/src/typings/uiConfig.ts`.
@@ -486,8 +485,6 @@ function server.setPlayerInventory(player, data)
 		local prefs = resolvePrefs(settings)
 
 		TriggerClientEvent('ox_inventory:setPlayerInventory', player.source, Inventory.Drops, inventory, totalWeight, inv.player, theme, prefs)
-
-		Injuries.sync(player.source)
 	end
 end
 exports('setPlayerInventory', server.setPlayerInventory)

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { imagepath } from '../../store/imagepath';
-import InjuryMarkers from './InjuryMarkers';
 
 export const REGION_FOR_CATEGORY: Record<string, string> = {
   hat: 'head',
@@ -89,8 +88,6 @@ const BodySilhouette: React.FC<BodySilhouetteProps> = ({ highlight }) => {
           />
         </>
       )}
-
-      <InjuryMarkers />
     </div>
   );
 };

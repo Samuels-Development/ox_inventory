@@ -60,32 +60,6 @@ return {
             mythic    = { label = 'Mythic',    color = '#FB7185', order = 6 },
         },
     },
-
-    injuries = {
-        enabled = true,
-        parts = {
-            head      = { label = 'Head',       x = 50, y = 9  },
-            chest     = { label = 'Chest',      x = 50, y = 25 },
-            abdomen   = { label = 'Abdomen',    x = 49, y = 39 },
-            leftArm   = { label = 'Left Arm',   x = 31, y = 40 },
-            rightArm  = { label = 'Right Arm',  x = 69, y = 40 },
-            leftHand  = { label = 'Left Hand',  x = 28, y = 56 },
-            rightHand = { label = 'Right Hand', x = 72, y = 56 },
-            leftLeg   = { label = 'Left Leg',   x = 43, y = 73 },
-            rightLeg  = { label = 'Right Leg',  x = 57, y = 73 },
-            feet      = { label = 'Feet',       x = 50, y = 95 },
-        },
-        types = {
-            scratch  = { label = 'Scratched', severity = 1, color = '#9CA3AF' },
-            bruise   = { label = 'Bruised',   severity = 1, color = '#A855F7' },
-            cut      = { label = 'Cut',       severity = 2, color = '#F59E0B' },
-            burn     = { label = 'Burned',    severity = 2, color = '#FB7185' },
-            bleeding = { label = 'Bleeding',  severity = 3, color = '#EF4444' },
-            gunshot  = { label = 'Gunshot',   severity = 3, color = '#DC2626' },
-            fracture = { label = 'Fractured', severity = 3, color = '#38BDF8' },
-        },
-    },
-
     theme = 'white',
 
     themes = {
