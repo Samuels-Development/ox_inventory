@@ -42,12 +42,12 @@ Everything from upstream ox_inventory still works: items, weapons, shops, stashe
 |---|---|
 | **Equipment slots** | Eleven wearable slots around a character figure: hat, glasses, mask, earpiece, torso, armour, backpack, gloves, belt, legs, shoes. Items declare which slot they fit. |
 | **Backpacks** | Equip a bag in the backpack slot and it opens as a separate panel below the other inventory, working like a stash you carry around with you. It has its own slot count and weight limit, on top of what the player can already carry. |
-| **Item rarities** | Six tiers that colour the slot border and tooltip. Sorting and filtering understand them. |
-| **Slot or grid inventory** | Pick one. Slots is the classic fixed-slot inventory. Grid is a Tarkov style inventory where every item occupies a footprint in cells and can be rotated. |
-| **Settings panel** | Players tune scale, spacing, contrast, fonts, tooltips, notifications and colour theme in game. Preferences persist per character. |
-| **Fast slots** | The first five slots surfaced as a labelled quick-use row bound to the number keys. |
-| **Colour themes** | Seven presets plus full custom colour overrides. |
-| **Resolution independent** | Every size derives from a viewport unit, so the interface holds its proportions from 1080p to ultrawide. |
+| **Item rarities** | Six tiers, from Common to Mythic. Each one tints the item's slot and tooltip so players can see at a glance what is worth picking up. You can sort and filter by rarity. |
+| **Slot or grid inventory** | Pick one. Slots is the classic inventory where every item takes one square, big or small. Grid is a Tarkov style inventory where a rifle takes more room than a sandwich, and items can be rotated to fit. |
+| **Settings panel** | A settings menu inside the inventory. Players change size, spacing, contrast, fonts, tooltips, notifications and colour theme themselves, and their choices are saved to their character. |
+| **Fast slots** | The first five inventory slots shown as a labelled row, used with the number keys. |
+| **Colour themes** | Seven ready made colour schemes, and players can pick their own colours instead. |
+| **Scales to any resolution** | Sizes are worked out from the screen height rather than fixed pixels, so it looks the same on 1080p, 1440p and ultrawide. |
 
 ## Configuration
 
@@ -56,10 +56,15 @@ Everything below lives in **`data/ui.lua`**.
 ### Layout
 
 ```lua
-layout = 'slots',   -- 'slots' | 'grid'
+layout = 'grid',   -- 'slots' | 'grid'
 ```
 
-Pick one or the other. `slots` is the classic fixed-slot inventory, where a slot holds one item whatever its size. `grid` is a Tarkov style inventory, where every item occupies a footprint measured in cells:
+Pick one or the other. **This fork ships with `grid`.** Set it to `slots` if you want the classic inventory.
+
+- `slots` is the classic inventory. Every item takes exactly one square, whether it is a rifle or a sandwich.
+- `grid` is a Tarkov style inventory. Items take up room based on their size, and players can rotate them with <kbd>R</kbd> to make things fit.
+
+The block below only matters when you are using `grid`:
 
 ```lua
 grid = {
@@ -79,15 +84,16 @@ grid = {
 
 | Field | Purpose |
 |---|---|
-| `columns` | Cells across, clamped to 5 through 14. |
-| `rows` | Grid layout only. The player inventory becomes `rows * columns` cells, replacing the `inventory:slots` convar. Equipment slots are still appended on top. |
-| `containerRows` | Grid layout only. Every stash, trunk, glovebox, drop and container becomes `containerRows * columns` cells, replacing its registered slot count. |
-| `allowRotate` | Lets players rotate an item with <kbd>R</kbd> while dragging. |
-| `defaults` | Fallback footprint by item class when an item declares no `grid` of its own. |
+| `columns` | How many cells wide every inventory is. Minimum 5, maximum 14. |
+| `rows` | How many cells tall the player's own inventory is, so they get `rows * columns` cells in total. Grid only. |
+| `containerRows` | Same thing for every stash, trunk, glovebox, drop and bag. Grid only. |
+| `allowRotate` | Lets players press <kbd>R</kbd> while dragging to turn an item sideways. |
+| `defaultSize` | Size used for an item that has no `grid` of its own. |
+| `defaults` | Same, but per kind of item, so every weapon can default to 2x2 without listing them one by one. |
 
-**Why `rows` and `containerRows` exist.** In slots layout a slot holds one item whatever its size. In grid layout a 2x3 backpack eats six cells. Reusing the same numbers would quietly shrink every inventory on the server the moment you switch, so grid layout sizes the player inventory from `rows` and every container from `containerRows`. Both apply only when `layout = 'grid'`; slots layout keeps using `inventory:slots` and each container's registered count untouched.
+**Why `rows` and `containerRows` exist.** In slots, a backpack and a sandwich each take one slot, so 50 slots means 50 items. In grid, that same backpack takes six cells, so 50 cells holds far fewer things. If grid reused the slot numbers, every inventory on your server would quietly get smaller the moment you switched. So grid ignores them and uses these two values instead. Both are ignored entirely when `layout = 'slots'`.
 
-Keeping `rows` and `containerRows` equal gives both panels the same dimensions, so the two sides of the interface stay symmetrical. Set `containerRows` lower if you would rather stashes were smaller than the player inventory.
+Keep the two numbers equal and both sides of the screen come out the same size, which is what you want visually. Lower `containerRows` if you would rather stashes held less than the player.
 
 > [!WARNING]
 > Switching an existing server from `slots` to `grid` does not reflow inventories that already have items in them. Positions were assigned under the old layout and will overlap. Change it on a fresh database, or expect players to rearrange.
@@ -105,15 +111,15 @@ clothing = {
 },
 ```
 
-`side` puts the slot in the column to the left or right of the character figure. Order in the table is display order.
+These are the slots down either side of the character. `side` decides which side a slot appears on, and they appear top to bottom in the order you list them.
 
-**Adding a slot** takes three steps:
+**Adding a slot:**
 
-1. Add the entry to `clothing.slots` in `data/ui.lua`.
-2. Give it an icon in `web/src/components/utils/icons/ClothingIcons.tsx`, adding your component to the `CLOTHING_ICONS` map under the same `name`. This is optional: an unmapped slot falls back to a generic glyph.
-3. Rebuild the interface (`cd web && npm run build`).
+1. Add a line to `clothing.slots` in `data/ui.lua`.
+2. Optionally give it an icon in `web/src/components/utils/icons/ClothingIcons.tsx`, adding yours to the `CLOTHING_ICONS` list under the same `name`. Skip this and the slot still works, it just shows a generic icon.
+3. If you did step 2, rebuild (`cd web && npm run build`). If you skipped it, just restart the resource.
 
-Slot count is not fixed, but each slot is one more reserved slot on every player inventory, so keep it deliberate.
+You can have as many slots as you like, but each one permanently reserves a slot on every player's inventory, so do not add them for the sake of it.
 
 ### Rarities
 
@@ -132,7 +138,7 @@ rarity = {
 },
 ```
 
-`order` drives rarity sorting and the tooltip bar, so keep it sequential. Any item without a `rarity` falls back to `default`. Add or rename tiers freely: the interface reads this table rather than a hardcoded list.
+`order` is what "sort by rarity" actually sorts on, so number them 1 upwards with no gaps. Any item that does not set a `rarity` is treated as `default`. Add, remove or rename tiers as you like; nothing is hardcoded, the interface just reads this table.
 
 ### Themes
 
@@ -158,28 +164,30 @@ Items live in **`data/items.lua`**. Beyond the stock ox_inventory fields, this f
 
 | Field | Purpose |
 |---|---|
-| `rarity` | Tier key from `ui.lua`. Colours the slot border and tooltip. Omit for `common`. |
-| `grid` | `{ width, height }` in cells. Only used by the `grid` layout; ignored in `slots`. |
-| `clothing` | Equipment slot name, or a table of names when an item fits more than one. Validated against `ui.lua` at startup, and a bad value is reported in console. |
-| `client.image` | Optional. **Omit it** when the image is named after the item: the interface falls back to `web/images/<item name>.png` on its own. |
+| `rarity` | One of the tier names from `ui.lua`. Tints the item's slot and tooltip. Leave it out and the item is `common`. |
+| `grid` | How many cells the item takes, as `{ width, height }`. Only matters in grid layout; harmless in slots. |
+| `clothing` | Which equipment slot the item goes in. Use a table like `{ 'hat', 'mask' }` if it fits more than one. Names are checked against `ui.lua` on startup and a wrong one is printed in the server console. |
+| `client.image` | Almost always unnecessary. Name the PNG after the item and it is found automatically. Only set this when the file name has to differ. |
 
 ### Item images
 
-Drop a PNG into `web/images/` named after the item (`trail_backpack.png`) and it resolves automatically. The house size is **100 x 100 RGBA**, though the interface scales anything with `object-fit: contain`, so a different size will still fit, just with letterboxing.
+Drop a PNG into `web/images/` named after the item (`trail_backpack.png`) and it is picked up automatically. No config, no restart of anything but the resource.
+
+Size is forgiving. Most of the stock icons are 100 x 100 and the bags that ship with this fork are 145 x 124, and both look fine, because every icon is scaled down to fit its slot without being stretched. Use a transparent background and keep the item roughly filling the image.
 
 ### Containers
 
-A container item opens a second inventory. Register it in **`modules/items/containers.lua`**:
+A container is any item that holds other items, like a bag or a pizza box. Adding the item to `data/items.lua` is not enough on its own; you also have to register it in **`modules/items/containers.lua`**, or it will just be an item that does nothing:
 
 ```lua
 setContainerProperties('trail_backpack', {
     slots = 26,
-    maxWeight = 45000,          -- grams
-    blacklist = containerItems, -- stops bags nesting inside bags
+    maxWeight = 45000,          -- grams, so this is 45kg
+    blacklist = containerItems,
 })
 ```
 
-`whitelist` is the inverse and restricts a container to specific items, which is how the pizza box only ever holds pizza.
+`blacklist` is a list of items the container refuses. Passing `containerItems` refuses every other container, which is what stops players hiding a duffel bag inside a duffel bag to dodge weight limits. `whitelist` is the opposite and allows nothing except what you list, which is how the pizza box only ever holds pizza.
 
 There are two ways a container can behave, and the only difference is whether it declares a `clothing` field.
 
@@ -206,7 +214,7 @@ Thirteen container items, all sharing one icon set.
 | `police_duty_belt` | n/a | +8 kg carry weight | Equipped, belt slot |
 | `police_duty_belt_heavy` | n/a | +14 kg carry weight | Equipped, belt slot |
 
-The two duty belts are worn kit rather than storage. Instead of opening a stash they raise how much the player can carry while equipped, applied as a delta so bonuses set by other resources survive. Tune the amounts in `beltCapacity` in `modules/inventory/server.lua`.
+The two duty belts work differently to everything else in that table. They hold nothing at all. Wearing one simply lets the player carry more weight in their own inventory, and taking it off removes the bonus again. If another resource has also changed that player's carry weight, the belt adds to it rather than overwriting it. Change the amounts in `beltCapacity` in `modules/inventory/server.lua`.
 
 ## Installation
 
@@ -244,24 +252,29 @@ npm ci
 npm run build
 ```
 
-Rebuild after **any** change under `web/`, including `data/ui.lua` edits that add an equipment slot needing a new icon.
+**When you need to rebuild, and when you don't:**
+
+- Changed something in `data/`, like `ui.lua` or `items.lua`? **No rebuild.** Those are sent to the interface while the server runs, so a `restart ox_inventory` is enough.
+- Changed something in `web/src/`, like adding an icon? **Rebuild.** Nothing under `web/src/` reaches the game until it is built.
 
 ## Staying current with upstream
 
-This fork tracks [CommunityOx/ox_inventory](https://github.com/CommunityOx/ox_inventory).
+This fork follows [CommunityOx/ox_inventory](https://github.com/CommunityOx/ox_inventory) and is currently level with it.
 
-A scheduled workflow (`.github/workflows/upstream-sync.yml`) checks upstream daily and opens a pull request when it is ahead, so updates arrive as a reviewable diff rather than a surprise. You can also run it on demand from the Actions tab.
+> [!IMPORTANT]
+> **`git merge upstream/main` does not work here, and never will.** This repository was started fresh rather than forked on GitHub, so it shares no commit history with upstream. Git has no common ancestor to merge from and will refuse outright. Upstream changes have to be ported by hand.
 
-To pull updates by hand:
+A scheduled workflow (`.github/workflows/upstream-sync.yml`) runs daily and compares the two. When upstream is ahead it opens or updates a single issue listing exactly which commits are new, so you know what to port without watching their repo. You can also run it on demand from the Actions tab.
+
+To check by hand:
 
 ```bash
 git remote add upstream https://github.com/CommunityOx/ox_inventory.git
 git fetch upstream
-git merge upstream/main
+git log --oneline upstream/main -5
 ```
 
-> [!NOTE]
-> Expect conflicts in `web/`. The interface here is a rewrite, so upstream changes to their UI rarely apply cleanly. Server and shared Lua usually merges without trouble.
+Then read the commits you care about and apply the changes yourself. Most upstream work touches server and shared Lua, which usually drops in unchanged. Anything touching their `web/` will not apply at all, because the interface here is a full rewrite.
 
 ## Credits
 

@@ -1,4 +1,4 @@
-name: Sync upstream
+name: Check upstream
 
 on:
   schedule:
@@ -6,55 +6,62 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
+  issues: write
 
 jobs:
-  sync:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Configure git
+      - name: Read our version
+        id: ours
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          OURS=$(grep -oP "^version\s+'\K[^']+" fxmanifest.lua)
+          echo "version=$OURS" >> "$GITHUB_OUTPUT"
+          echo "This fork is on $OURS"
 
-      - name: Fetch upstream
+      - name: Read upstream version and commits
+        id: theirs
         run: |
           git remote add upstream https://github.com/CommunityOx/ox_inventory.git || true
-          git fetch upstream main
+          git fetch --quiet upstream main
 
-      - name: Check for new commits
-        id: check
-        run: |
-          BEHIND=$(git rev-list --count HEAD..upstream/main)
-          echo "behind=$BEHIND" >> "$GITHUB_OUTPUT"
-          echo "Upstream is $BEHIND commit(s) ahead."
+          THEIRS=$(git show upstream/main:fxmanifest.lua | grep -oP "^version\s+'\K[^']+")
+          echo "version=$THEIRS" >> "$GITHUB_OUTPUT"
 
-      - name: Open sync pull request
-        if: steps.check.outputs.behind != '0'
+          BUMP=$(git log upstream/main --format='%H' -S"$THEIRS" -- fxmanifest.lua | head -1)
+          {
+            echo 'commits<<EOF'
+            git log --format='- %h %s' "$BUMP..upstream/main"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Upstream is on $THEIRS"
+
+      - name: Report
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OURS: ${{ steps.ours.outputs.version }}
+          THEIRS: ${{ steps.theirs.outputs.version }}
+          COMMITS: ${{ steps.theirs.outputs.commits }}
         run: |
-          BRANCH="upstream-sync"
-          git checkout -B "$BRANCH"
-
-          if git merge upstream/main --no-edit; then
-            echo "Merged cleanly."
-          else
-            echo "Conflicts left in place for manual resolution."
-            git add -A
-            git commit -m "chore: merge upstream with conflicts" || true
+          if [ "$OURS" = "$THEIRS" ] && [ -z "$COMMITS" ]; then
+            echo "Up to date with upstream $THEIRS. Nothing to report."
+            exit 0
           fi
 
-          git push --force origin "$BRANCH"
+          TITLE="Upstream ox_inventory has changes (ours $OURS, theirs $THEIRS)"
+          BODY=$(printf 'This fork does not share git history with upstream, so these cannot be merged. Port them by hand.\n\n**Our version:** %s\n**Upstream version:** %s\n\n**Unreleased upstream commits:**\n%s\n\nCompare: https://github.com/CommunityOx/ox_inventory/compare/v%s...main\n' "$OURS" "$THEIRS" "${COMMITS:-none}" "$THEIRS")
 
-          gh pr create \
-            --base main \
-            --head "$BRANCH" \
-            --title "chore: sync ${{ steps.check.outputs.behind }} commit(s) from upstream" \
-            --body "Automated sync from [CommunityOx/ox_inventory](https://github.com/CommunityOx/ox_inventory). Review the diff before merging, since this fork carries a rewritten UI in \`web/\`." \
-            || gh pr edit "$BRANCH" --title "chore: sync ${{ steps.check.outputs.behind }} commit(s) from upstream"
+          EXISTING=$(gh issue list --label upstream --state open --json number --jq '.[0].number')
+
+          if [ -n "$EXISTING" ]; then
+            gh issue edit "$EXISTING" --title "$TITLE" --body "$BODY"
+          else
+            gh label create upstream --description "Upstream sync" --color ededed || true
+            gh issue create --title "$TITLE" --body "$BODY" --label upstream
+          fi
