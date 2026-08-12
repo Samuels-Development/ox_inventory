@@ -1,7 +1,7 @@
 
 return {
     -- 'slots' | 'grid'
-    layout = 'grid',
+    layout = 'slots',
 
     pedPreview = {
         mode = 'silhouette',

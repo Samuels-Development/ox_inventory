@@ -56,10 +56,10 @@ Everything below lives in **`data/ui.lua`**.
 ### Layout
 
 ```lua
-layout = 'grid',   -- 'slots' | 'grid'
+layout = 'slots',   -- 'slots' | 'grid'
 ```
 
-Pick one or the other. **This fork ships with `grid`.** Set it to `slots` if you want the classic inventory.
+Pick one or the other. **This fork ships with `slots`.** Change it to `grid` for the Tarkov style inventory.
 
 - `slots` is the classic inventory. Every item takes exactly one square, whether it is a rifle or a sandwich.
 - `grid` is a Tarkov style inventory. Items take up room based on their size, and players can rotate them with <kbd>R</kbd> to make things fit.
