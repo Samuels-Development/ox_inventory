@@ -71,7 +71,11 @@
 }
 
 .inventory-stage.layout-slots .inventory-side.left {
-  justify-content: space-between;
+  justify-content: flex-start;
+
+  > .fast-slot-wrapper {
+    margin-top: auto;
+  }
 }
 
 .inventory-centre {
