@@ -2,3 +2,8 @@ modules/logs/**/
 .cfg
 node_modules
 .idea
+# agent / tooling artifacts
+.playwright-mcp/
+.claude/
+CLAUDE.md
+*TEMPclaude*

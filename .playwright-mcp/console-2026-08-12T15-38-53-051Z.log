@@ -1,4 +1,0 @@
-[     488ms] [INFO] [O11Y] [DatadogRUM] Initialized {service: claude-ai, env: production, version: 57cf08ca12} @ https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/vendor-datadog-BxH0POCI.js:0
-[    1273ms] [LOG] recaptchacompat disabled @ https://assets-proxy.anthropic.com/claude-ai/v2/assets/v1/vendor-datadog-BxH0POCI.js:0
-[    2667ms] [ERROR] Cross-Origin-Opener-Policy policy would block the window.closed call. @ https://accounts.google.com/gsi/client:137
-[    2668ms] [ERROR] Cross-Origin-Opener-Policy policy would block the window.closed call. @ https://accounts.google.com/gsi/client:137
