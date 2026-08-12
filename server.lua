@@ -13,6 +13,421 @@ local TriggerEventHooks = require 'modules.hooks.server'
 local db = require 'modules.mysql.server'
 local Items = require 'modules.items.server'
 local Inventory = require 'modules.inventory.server'
+local Injuries = require 'modules.injuries.server'
+
+
+---The only keys that may ever be stored, matching `ThemeColors` in `web/src/typings/uiConfig.ts`.
+local themeColorKeys = {
+	'backgroundColor1',
+	'backgroundColor2',
+	'backgroundColor3',
+	'rgbColor1',
+	'rgbColor2',
+	'mainColor',
+	'secondaryColor',
+	'textShadow',
+	'photoShadowColor',
+}
+
+local isThemeColorKey = {}
+
+for i = 1, #themeColorKeys do
+	isThemeColorKey[themeColorKeys[i]] = true
+end
+
+---Longest legal value is `rgba(255, 255, 255, 0.000)`-ish; 64 is generous and bounds the work.
+local MAX_COLOR_LENGTH = 64
+
+---@param value string
+---@param max number
+---@return boolean
+local function inRange(value, max)
+	-- The patterns below only ever capture plain digits, so `tonumber` cannot see `0x`/`1e9`.
+	local number = tonumber(value)
+
+	return number ~= nil and number >= 0 and number <= max
+end
+
+---`#rgb`, `#rrggbb` or `#rrggbbaa`. Lua's `$` anchors the whole subject, so a trailing newline
+---or `; background-image: ...` cannot slip past.
+---@param value string
+---@return boolean
+local function isHexColor(value)
+	local hex = value:match('^#(%x+)$')
+
+	if not hex then return false end
+
+	local length = #hex
+
+	return length == 3 or length == 6 or length == 8
+end
+
+---`rgb(r, g, b)` or `rgba(r, g, b, a)` with integer channels 0-255 and alpha 0-1.
+---@param value string
+---@return boolean
+local function isRgbColor(value)
+	local r, g, b = value:match('^rgb%(%s*(%d+)%s*,%s*(%d+)%s*,%s*(%d+)%s*%)$')
+
+	if r then
+		return inRange(r, 255) and inRange(g, 255) and inRange(b, 255)
+	end
+
+	local a
+	r, g, b, a = value:match('^rgba%(%s*(%d+)%s*,%s*(%d+)%s*,%s*(%d+)%s*,%s*(%d*%.?%d+)%s*%)$')
+
+	if not r then return false end
+
+	return inRange(r, 255) and inRange(g, 255) and inRange(b, 255) and inRange(a, 1)
+end
+
+---@param value any
+---@return boolean
+local function isThemeColor(value)
+	if type(value) ~= 'string' then return false end
+
+	local length = #value
+
+	if length < 4 or length > MAX_COLOR_LENGTH then return false end
+
+	return isHexColor(value) or isRgbColor(value)
+end
+
+---All nine keys are required and no others are tolerated - a partial or padded payload is
+---rejected outright rather than silently repaired.
+---@param colors any
+---@return table? colors a fresh table containing only the validated values
+local function validateThemeColors(colors)
+	if type(colors) ~= 'table' then return end
+
+	local validated = {}
+
+	for i = 1, #themeColorKeys do
+		local key = themeColorKeys[i]
+
+		if not isThemeColor(colors[key]) then return end
+
+		validated[key] = colors[key]
+	end
+
+	for key in pairs(colors) do
+		if not isThemeColorKey[key] then return end
+	end
+
+	return validated
+end
+
+---@param name any must be a key of `shared.ui.themes`, or the literal 'custom'
+---@param colors any only read when `name` is 'custom'
+---@return string? name
+---@return table? colors
+local function validateTheme(name, colors)
+	if type(name) ~= 'string' then return end
+
+	if name == 'custom' then
+		local validated = validateThemeColors(colors)
+
+		if not validated then return end
+
+		return name, validated
+	end
+
+	if type(shared.ui.themes) ~= 'table' or type(shared.ui.themes[name]) ~= 'table' then return end
+
+	return name
+end
+
+local prefDefs = {
+	-- §3 Display
+	{ key = 'uiScale',           kind = 'number',      default = 1.0,       min = 0.75, max = 1.5,   step = 0.05 },
+	{ key = 'backgroundDim',     kind = 'number',      default = 0.9,       min = 0.0,  max = 1.0,   step = 0.05 },
+	{ key = 'reduceMotion',      kind = 'boolean',     default = false },
+	{ key = 'slotSize',            kind = 'number',  default = 1.0,      min = 0.8,  max = 1.25,  step = 0.05 },
+	{ key = 'slotSpacing',         kind = 'number',  default = 1.0,      min = 0.0,  max = 2.0,   step = 0.1 },
+	{ key = 'cornerStyle',         kind = 'enum',    default = 'soft',   options = { 'sharp', 'soft', 'round' } },
+	{ key = 'textSize',            kind = 'number',  default = 1.0,      min = 0.85, max = 1.2,   step = 0.05 },
+	{ key = 'itemImageSize',       kind = 'number',  default = 1.0,      min = 0.7,  max = 1.2,   step = 0.05 },
+	{ key = 'slotContrast',        kind = 'number',  default = 1.0,      min = 0.0,  max = 3.0,   step = 0.1 },
+	{ key = 'panelSurface',        kind = 'number',  default = 0.0,      min = 0.0,  max = 0.6,   step = 0.05 },
+	{ key = 'showSlotNoise',       kind = 'boolean', default = true },
+	{ key = 'showDurability',      kind = 'boolean', default = true },
+	{ key = 'showItemPlaceholder', kind = 'boolean', default = true },
+	{ key = 'slotBorder',          kind = 'number',  default = 1.0,      min = 0.0,  max = 4.0,   step = 0.1 },
+	{ key = 'figureOpacity',       kind = 'number',  default = 0.26,     min = 0.0,  max = 1.0,   step = 0.02 },
+	{ key = 'showWeightRing',      kind = 'boolean', default = true },
+	{ key = 'showPanelIcon',       kind = 'boolean', default = true },
+	{ key = 'showSlotNumber',      kind = 'boolean', default = true },
+	-- §4 Accessibility
+	{ key = 'rarityDisplay',     kind = 'enum',        default = 'glow',    options = { 'off', 'border', 'glow' } },
+	{ key = 'rarityPalette',     kind = 'enum',        default = 'default', options = { 'default', 'deuteranopia', 'protanopia', 'tritanopia' } },
+	{ key = 'fontFamily',          kind = 'enum',    default = 'default', options = { 'default', 'system', 'mono', 'serif' } },
+	{ key = 'boldText',            kind = 'boolean', default = false },
+	{ key = 'highContrast',        kind = 'boolean', default = false },
+	{ key = 'reduceTransparency',  kind = 'boolean', default = false },
+	{ key = 'focusRing',           kind = 'boolean', default = false },
+	-- §5 Behaviour
+	{ key = 'tooltipDelay',      kind = 'number',      default = 500,       min = 0,    max = 1500,  step = 50 },
+	{ key = 'showTooltips',          kind = 'boolean', default = true },
+	{ key = 'showSearchBar',         kind = 'boolean', default = true },
+	{ key = 'showFilterChips',       kind = 'boolean', default = true },
+	{ key = 'showItemNotifications', kind = 'boolean', default = true },
+	{ key = 'hotbarAlwaysOn',    kind = 'boolean',     default = false },
+	{ key = 'hotbarTimeout',     kind = 'number',      default = 3000,      min = 1000, max = 10000, step = 500 },
+	{ key = 'fastSlotCount',     kind = 'number',      default = 5,         min = 0,    max = 5,     step = 1 },
+	{ key = 'showSlotLabel',     kind = 'boolean',     default = true },
+	{ key = 'showSlotCount',     kind = 'boolean',     default = true },
+	{ key = 'showSlotWeight',    kind = 'boolean',     default = true },
+	-- §6 Sorting & favourites
+	{ key = 'sortMode',          kind = 'enum',        default = 'slot',    options = { 'slot', 'name', 'weight', 'rarity', 'count' } },
+	{ key = 'sortDirection',       kind = 'enum',    default = 'ascending', options = { 'ascending', 'descending' } },
+	{ key = 'favouritesFirst',     kind = 'boolean', default = true },
+	{ key = 'pageSize',            kind = 'number',  default = 30,       min = 10,   max = 100,   step = 10 },
+	{ key = 'favourites',        kind = 'stringArray', default = {},        maxLength = 64, pattern = '^[%w_]+$' },
+}
+
+local prefDefByKey = {}
+
+for i = 1, #prefDefs do
+	prefDefByKey[prefDefs[i].key] = prefDefs[i]
+end
+
+---Bounds the work a crafted payload can force. The whitelist already caps how many keys can be
+---*useful*; this stops ten thousand junk keys being walked before the first one is rejected.
+local MAX_PREF_KEYS = #prefDefs
+
+---Longest an individual favourite may be. Item names in this codebase are an order shorter.
+local MAX_FAVOURITE_LENGTH = 64
+
+---Clamp, then quantise. Mirrors `clampNumber` in `web/src/store/preferences.ts` exactly, so a
+---value the client stores round-trips through the database unchanged.
+---@param def table
+---@param value number
+---@return number
+local function clampPrefNumber(def, value)
+	if value < def.min then
+		value = def.min
+	elseif value > def.max then
+		value = def.max
+	end
+
+	if def.step >= 1 then return math.floor(value + 0.5) end
+
+	return math.floor(value * 10000 + 0.5) / 10000
+end
+
+---@param def table
+---@param value any
+---@return any? validated `nil` rejects. A *legal* value may itself be `false` or `0`, so callers
+---must compare against nil rather than test truthiness.
+local function validatePrefValue(def, value)
+	local kind = def.kind
+
+	if kind == 'boolean' then
+		if type(value) ~= 'boolean' then return end
+
+		return value
+	end
+
+	if kind == 'number' then
+		-- NaN fails its own equality test; either infinity would otherwise clamp neatly onto a
+		-- bound and be accepted, and neither is a value any control can produce.
+		if type(value) ~= 'number' or value ~= value or value == math.huge or value == -math.huge then return end
+
+		return clampPrefNumber(def, value)
+	end
+
+	if kind == 'enum' then
+		if type(value) ~= 'string' then return end
+
+		for i = 1, #def.options do
+			if def.options[i] == value then return value end
+		end
+
+		return
+	end
+
+	if kind == 'stringArray' then
+		if type(value) ~= 'table' then return end
+
+		local count = 0
+
+		for _ in pairs(value) do
+			count += 1
+
+			if count > def.maxLength then return end
+		end
+
+		local list, seen = {}, {}
+
+		for i = 1, count do
+			local entry = value[i]
+
+			if type(entry) ~= 'string' then return end
+			if #entry == 0 or #entry > MAX_FAVOURITE_LENGTH then return end
+			if not entry:match(def.pattern) then return end
+
+			if not seen[entry] then
+				seen[entry] = true
+				list[#list + 1] = entry
+			end
+		end
+
+		return list
+	end
+end
+
+---@param prefs any
+---@return table? validated a fresh table holding only validated values; nil rejects the payload
+local function validatePrefs(prefs)
+	if type(prefs) ~= 'table' then return end
+
+	local validated = {}
+	local count = 0
+
+	for key, value in pairs(prefs) do
+		local def = type(key) == 'string' and prefDefByKey[key]
+
+		-- An unrecognised key means the payload did not come from this UI. Reject all of it
+		-- rather than storing the half we happen to understand.
+		if not def then return end
+
+		count += 1
+
+		if count > MAX_PREF_KEYS then return end
+
+		local ok = validatePrefValue(def, value)
+
+		if ok == nil then return end
+
+		validated[key] = ok
+	end
+
+	return validated
+end
+
+---@return { name: string, colors: table }
+local function defaultTheme()
+	return { name = shared.ui.theme, colors = shared.ui.themes[shared.ui.theme] }
+end
+
+---The settings row is keyed on the inventory owner, i.e. the character identifier.
+---@param inv OxInventory?
+---@return string?
+local function settingsOwner(inv)
+	local owner = inv and inv.owner
+
+	if type(owner) == 'number' then owner = tostring(owner) end
+
+	if type(owner) ~= 'string' or owner == '' then return end
+
+	return owner
+end
+
+---@param inv OxInventory?
+---@return table settings
+local function loadSettings(inv)
+	local owner = settingsOwner(inv)
+
+	if not owner then return {} end
+
+	local success, settings = pcall(db.loadSettings, owner)
+
+	if not success or type(settings) ~= 'table' then return {} end
+
+	return settings
+end
+
+---Resolves the theme sent in the `init` payload. Always returns a usable theme.
+---@param settings table
+---@return { name: string, colors: table }
+local function resolveTheme(settings)
+	local name, colors = validateTheme(settings.theme, settings.colors)
+
+	if not name then return defaultTheme() end
+
+	return { name = name, colors = colors or shared.ui.themes[name] }
+end
+
+---@param settings table
+---@return table? prefs nil when nothing is stored, which omits the field from the payload
+local function resolvePrefs(settings)
+	local prefs = validatePrefs(settings.prefs)
+
+	if not prefs or not next(prefs) then return end
+
+	return prefs
+end
+
+---@param inv OxInventory
+---@param patch { theme: { name: string, colors: table? }?, prefs: table? } already validated
+---@return boolean
+local function writeSettings(inv, patch)
+	local owner = settingsOwner(inv)
+
+	if not owner then return false end
+
+	local existing = loadSettings(inv)
+	local blob = {}
+
+	if patch.theme then
+		blob.theme = patch.theme.name
+		blob.colors = patch.theme.colors
+	else
+		-- Re-validated on the way back out: a row hand-edited in the database is no more trusted
+		-- than a payload from a client.
+		blob.theme, blob.colors = validateTheme(existing.theme, existing.colors)
+	end
+
+	local prefs = validatePrefs(existing.prefs)
+
+	if patch.prefs then
+		prefs = prefs or {}
+
+		-- Merged rather than replaced, so the panel may send only what the player changed.
+		for key, value in pairs(patch.prefs) do prefs[key] = value end
+	end
+
+	blob.prefs = prefs
+
+	local success, saved = pcall(db.saveSettings, owner, blob)
+
+	return success and saved == true
+end
+
+---@param source number
+---@param data { name: string, colors: table? }
+---@return boolean
+lib.callback.register('ox_inventory:saveTheme', function(source, data)
+	if type(data) ~= 'table' then return false end
+
+	local inv = Inventory(source)
+
+	if not inv or not inv.player then return false end
+
+	local name, colors = validateTheme(data.name, data.colors)
+
+	if not name then return false end
+
+	return writeSettings(inv, { theme = { name = name, colors = colors } })
+end)
+
+---@param source number
+---@param data { prefs: table }
+---@return boolean
+lib.callback.register('ox_inventory:savePrefs', function(source, data)
+	if type(data) ~= 'table' then return false end
+
+	local inv = Inventory(source)
+
+	if not inv or not inv.player then return false end
+
+	local prefs = validatePrefs(data.prefs)
+
+	-- Whole-payload rejection: an unknown key, a wrong type, a non-member enum or a malformed
+	-- favourites list stores nothing at all, rather than the part we happened to understand.
+	if not prefs then return false end
+
+	return writeSettings(inv, { prefs = prefs })
+end)
 
 ---@param player table
 ---@param data table?
@@ -61,7 +476,18 @@ function server.setPlayerInventory(player, data)
 		inv.player.ped = GetPlayerPed(player.source)
 
 		if server.syncInventory then server.syncInventory(inv) end
-		TriggerClientEvent('ox_inventory:setPlayerInventory', player.source, Inventory.Drops, inventory, totalWeight, inv.player)
+
+		-- Sent ahead of the payload below so the client has the worn bag cached by the time it
+		-- builds the `init` message. Sends nothing at all when no bag is worn.
+		Inventory.SyncBackpack(inv)
+
+		local settings = loadSettings(inv)
+		local theme = resolveTheme(settings)
+		local prefs = resolvePrefs(settings)
+
+		TriggerClientEvent('ox_inventory:setPlayerInventory', player.source, Inventory.Drops, inventory, totalWeight, inv.player, theme, prefs)
+
+		Injuries.sync(player.source)
 	end
 end
 exports('setPlayerInventory', server.setPlayerInventory)
@@ -422,7 +848,7 @@ lib.callback.register('ox_inventory:useItem', function(source, itemName, slot, m
 				return TriggerClientEvent('ox_lib:notify', source, { type = 'error', description = locale('not_enough_durability', label) })
 			end
 
-			if data.count > 1 and consume < 1 and consume > 0 and not Inventory.GetEmptySlot(inventory) then
+			if data.count > 1 and consume < 1 and consume > 0 and not Inventory.GetEmptySlot(inventory, item) then
 				return TriggerClientEvent('ox_lib:notify', source, { type = 'error', description = locale('cannot_use', label) })
 			end
 		end
@@ -499,7 +925,7 @@ lib.callback.register('ox_inventory:useItem', function(source, itemName, slot, m
 					end
 
 					if data.count > 1 then
-						local emptySlot = Inventory.GetEmptySlot(inventory)
+						local emptySlot = Inventory.GetEmptySlot(inventory, item)
 
 						if emptySlot then
 							local newItem = Inventory.SetSlot(inventory, item, 1, table.deepclone(data.metadata), emptySlot)

@@ -1,0 +1,373 @@
+
+@use './tokens';
+
+$rarity-tiers: common, uncommon, rare, epic, legendary, mythic;
+
+.inventory-slot {
+  --slot-tier: var(--slot-rarity, transparent);
+  --slot-accent: var(--slot-tier);
+
+  @each $tier in $rarity-tiers {
+    &.rarity-#{$tier} {
+      --slot-tier: var(--ox-rarity-#{$tier}, var(--slot-rarity, transparent));
+    }
+  }
+
+  box-sizing: border-box;
+  position: relative;
+  width: var(--ox-slot-w);
+  height: var(--ox-slot-h);
+  border-radius: var(--ox-radius-sm);
+  border: var(--ox-hairline) solid var(--ox-stroke-05);
+  background-color: var(--ox-slot-fill);
+  background-image: none;
+  box-shadow: none;
+  color: var(--ox-text-1);
+  cursor: default;
+  overflow: hidden;
+  image-rendering: -webkit-optimize-contrast;
+  transition: background-color var(--ox-t-slot), border-color var(--ox-t-slot);
+
+  * {
+    box-sizing: border-box;
+  }
+
+  &:hover {
+    background-color: var(--ox-slot-hover);
+    border-color: var(--ox-stroke-05);
+    transform: none;
+    filter: none;
+    z-index: auto;
+  }
+
+  @include tokens.slot-wash;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: var(--ox-line) solid var(--slot-accent);
+    border-radius: inherit;
+    opacity: 0.45;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  &.rarity-common {
+    --slot-accent: transparent;
+  }
+
+  .inventory-slot-rarity-glow {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0.18;
+    background: radial-gradient(62% 62% at 50% 44%, var(--slot-tier) 0%, transparent 72%);
+  }
+
+  .inventory-slot-rarity-corner {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 5;
+    width: #{tokens.ui(1.2963)};
+    height: #{tokens.ui(1.2963)};
+    pointer-events: none;
+    background-color: var(--slot-tier);
+    clip-path: polygon(100% 0, 100% 100%, 0 0);
+    opacity: 0.85;
+  }
+
+  .item-slot-wrapper {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: block;
+    padding: 0;
+  }
+
+  .inventory-slot-noise {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    overflow: hidden;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 128 128' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: #{tokens.ui(5.9259)} #{tokens.ui(5.9259)};
+    mix-blend-mode: overlay;
+    opacity: 0.05;
+  }
+
+  .inventory-slot-image {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 2;
+    width: calc(#{tokens.ui(5)} * var(--ox-img-k, 1));
+    height: calc(#{tokens.ui(5)} * var(--ox-img-k, 1));
+    transform: translate(-50%, -50%);
+    object-fit: contain;
+    pointer-events: none;
+  }
+
+  .inventory-slot-number {
+    position: absolute;
+    top: #{tokens.ui(0.45)};
+    left: #{tokens.ui(0.45)};
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--ox-icon-glyph);
+    min-width: 0;
+    height: var(--ox-icon-glyph);
+    border-radius: var(--ox-radius-md);
+    border: var(--ox-hairline) solid var(--ox-stroke-16);
+    background: var(--ox-badge-fill);
+    color: var(--ox-text-1);
+    text-align: center;
+    font-size: var(--ox-fs-micro);
+    font-weight: 500;
+    line-height: normal;
+  }
+
+  .inventory-slot-count {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 3;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: #{tokens.ui(0.2778)};
+    min-width: 0;
+    height: auto;
+    padding: #{tokens.ui(0.45)};
+    border-radius: 0;
+    background: none;
+    color: var(--ox-text-2);
+    font-size: var(--ox-fs-micro);
+    font-weight: 500;
+    line-height: normal;
+    pointer-events: none;
+
+    span {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .inventory-slot-number + .inventory-slot-count {
+    padding-left: #{tokens.ui(2.35)};
+  }
+
+  .inventory-slot-price {
+    position: absolute;
+    top: #{tokens.ui(1.7)};
+    right: 0;
+    left: auto;
+    z-index: 3;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: #{tokens.ui(0.2778)};
+    padding: 0 #{tokens.ui(0.2778)};
+    border: none;
+    border-radius: 0;
+    background: none;
+    font-size: #{tokens.ui(1)};
+    font-weight: 500;
+    line-height: normal;
+    pointer-events: none;
+
+    span {
+      text-shadow: var(--ox-shadow-text);
+    }
+  }
+
+  .inventory-slot-currency-icon {
+    width: #{tokens.ui(2)};
+    height: auto;
+    object-fit: contain;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+    image-rendering: -webkit-optimize-contrast;
+  }
+
+  .inventory-slot-durability {
+    position: absolute;
+    right: 0;
+    bottom: #{tokens.ui(1.3)};
+    left: 0;
+    z-index: 3;
+    padding: 0 #{tokens.ui(0.2778)} #{tokens.ui(0.2778)};
+    pointer-events: none;
+
+    .durability-bar {
+      height: #{tokens.ui(0.5556)};
+      border-radius: var(--ox-radius-sm);
+      border: var(--ox-line) inset rgba(0, 0, 0, 0.1);
+      background: var(--ox-track-durability);
+      overflow: hidden;
+    }
+  }
+
+  .inventory-slot-label {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 3;
+    height: #{tokens.ui(1.3)};
+    margin: 0;
+    padding: #{tokens.ui(0.15)} #{tokens.ui(0.3)} 0;
+    border-radius: 0 0 #{tokens.ui(0.1)} #{tokens.ui(0.1)};
+    background-color: var(--ox-labelbar);
+    color: var(--ox-text-2);
+    text-align: center;
+    text-transform: uppercase;
+    font-size: var(--ox-fs-micro);
+    font-weight: 500;
+    line-height: normal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+  }
+}
+
+.inventory-slot.inventory-slot-empty {
+  border-style: solid;
+  border-color: var(--ox-stroke-05);
+  background-color: var(--ox-slot-fill);
+  box-shadow: none;
+
+  &:hover {
+    border-color: var(--ox-stroke-05);
+    background-color: var(--ox-slot-hover);
+    transform: none;
+  }
+}
+
+.inventory-slot.inventory-slot-hover,
+.inventory-slot.inventory-slot-hover:hover {
+  border: var(--ox-line) dashed var(--ox-stroke-drag);
+  background-color: var(--ox-slot-hover);
+}
+
+.cloth .inventory-slot,
+.spatial-item .inventory-slot,
+.inventory-slot.cloth,
+.inventory-slot.spatial-item {
+  width: 100%;
+  height: 100%;
+}
+
+.inventory-slot-favourite {
+  position: relative;
+  display: block;
+  width: var(--ox-slot-w);
+  height: var(--ox-slot-h);
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: #{tokens.ui(0.3)};
+    z-index: 6;
+    width: #{tokens.ui(1.15)};
+    height: #{tokens.ui(1.15)};
+    transform: translateY(-50%);
+    background-color: var(--ox-main);
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    filter: drop-shadow(0 0 #{tokens.ui(0.19)} rgba(0, 0, 0, 0.85));
+    pointer-events: none;
+  }
+}
+
+.rarity-display-border,
+.rarity-display-off {
+  .inventory-slot-rarity-glow,
+  .inventory-slot-rarity-corner {
+    display: none;
+  }
+}
+
+.rarity-display-off {
+  .inventory-slot {
+    --slot-accent: transparent;
+  }
+
+  .cloth {
+    border-color: var(--ox-stroke-30);
+  }
+}
+
+.tooltip-rarity {
+  margin-top: #{tokens.ui(0.2)};
+  text-transform: uppercase;
+  font-size: var(--ox-fs-micro);
+  font-weight: 600;
+  letter-spacing: #{tokens.ui(0.06)};
+  line-height: normal;
+}
+
+.hide-slot-label {
+  .inventory-slot-label,
+  .hotbar-slot-label {
+    display: none;
+  }
+}
+
+.hide-slot-count {
+  .inventory-slot-quantity,
+  .hotbar-slot-count {
+    display: none;
+  }
+}
+
+.hide-slot-number {
+  .inventory-slot-number,
+  .hotbar-slot-number {
+    display: none;
+  }
+
+  .inventory-slot-number + .inventory-slot-count {
+    padding-left: #{tokens.ui(0.45)};
+  }
+}
+
+.hide-slot-noise {
+  .inventory-slot-noise,
+  .hotbar-slot-noise {
+    display: none;
+  }
+}
+
+.hide-slot-durability {
+  .inventory-slot-durability,
+  .hotbar-slot-durability {
+    display: none;
+  }
+}
+
+.hide-item-placeholder .item-image-missing {
+  display: none !important;
+}
+
+.hide-slot-weight {
+  .inventory-slot-weight {
+    display: none;
+  }
+
+  .inventory-slot-count {
+    justify-content: flex-end;
+  }
+}

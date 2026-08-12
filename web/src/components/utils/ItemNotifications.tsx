@@ -8,6 +8,7 @@ import { getItemUrl } from '../../helpers';
 import { SlotWithItem } from '../../typings';
 import { Items } from '../../store/items';
 import Fade from './transitions/Fade';
+import ItemImage from './ItemImage';
 
 interface ItemNotificationProps {
   item: SlotWithItem;
@@ -38,12 +39,7 @@ const ItemNotification = React.forwardRef(
 
         {/* Item image */}
         <div className="item-notification-image-wrapper">
-          <img
-            src={getItemUrl(slotItem)}
-            alt={slotItem.name}
-            className="item-notification-image"
-            draggable={false}
-          />
+          <ItemImage src={getItemUrl(slotItem)} className="item-notification-image" />
         </div>
 
         {/* Item label */}

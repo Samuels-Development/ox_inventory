@@ -32,19 +32,20 @@ const WeightBar: React.FC<{ percent: number; durability?: boolean }> = ({ percen
     [durability, percent]
   );
 
+  const width = Math.max(0, Math.min(100, percent));
+
   return (
     <div className={durability ? 'durability-bar' : 'weight-bar'}>
       <div
+        className={durability ? 'durability-bar-fill' : 'weight-bar-fill'}
         style={{
-          visibility: percent > 0 ? 'visible' : 'hidden',
-          height: '100%',
-          width: `${percent}%`,
+          visibility: width > 0 ? 'visible' : 'hidden',
+          width: `${width}%`,
           backgroundColor: color,
-          borderRadius: durability ? '0 0 7px 7px' : '3px',
-          transition: `background ${0.3}s ease, width ${0.3}s ease`,
         }}
-      ></div>
+      />
     </div>
   );
 };
+
 export default WeightBar;

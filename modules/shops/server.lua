@@ -2,6 +2,7 @@ if not lib then return end
 
 local Items = require 'modules.items.server'
 local Inventory = require 'modules.inventory.server'
+local Grid = require 'modules.grid.shared'
 local TriggerEventHooks = require 'modules.hooks.server'
 local Shops = {}
 local locations = shared.target and 'targets' or 'locations'
@@ -245,6 +246,22 @@ lib.callback.register('ox_inventory:buyItem', function(source, data)
 			local price = count * fromData.price
 
 			if toData == nil or (fromItem.name == toItem?.name and fromItem.stack and table.matches(toData.metadata, metadata)) then
+				-- `data.toSlot` comes straight from the NUI and was never validated.
+				if not toData then
+					local canPlace
+
+					if Grid.isEquipSlot(playerInv, data.toSlot) then
+						canPlace = Grid.canEquip(playerInv, data.toSlot, fromItem)
+					else
+						local width, height = Grid.getItemSize(fromItem, metadata)
+						canPlace = Grid.canPlace(playerInv, data.toSlot, width, height)
+					end
+
+					if not canPlace then
+						return false, false, { type = 'error', description = locale('cannot_carry') }
+					end
+				end
+
 				local newWeight = playerInv.weight + (fromItem.weight + (metadata?.weight or 0)) * count
 
 				if newWeight > playerInv.maxWeight then

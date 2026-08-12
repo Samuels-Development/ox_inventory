@@ -1,5 +1,5 @@
 import { CaseReducer, PayloadAction } from '@reduxjs/toolkit';
-import { itemDurability } from '../helpers';
+import { itemDurability, resolveInventoryPanel } from '../helpers';
 import { inventorySlice } from '../store/inventory';
 import { Items } from '../store/items';
 import { InventoryType, Slot, State } from '../typings';
@@ -13,6 +13,17 @@ interface Payload {
   slotsData?: { inventoryId: string; slots: number };
 }
 
+type InventoryKey = 'leftInventory' | 'rightInventory' | 'backpackInventory';
+
+const resolveInventoryKey = (state: State, inventoryId: string): InventoryKey | null =>
+  inventoryId === state.leftInventory.id
+    ? 'leftInventory'
+    : inventoryId === state.rightInventory.id
+    ? 'rightInventory'
+    : state.backpackInventory.id !== '' && inventoryId === state.backpackInventory.id
+    ? 'backpackInventory'
+    : null;
+
 export const refreshSlotsReducer: CaseReducer<State, PayloadAction<Payload>> = (state, action) => {
   if (action.payload.items) {
     if (!Array.isArray(action.payload.items)) action.payload.items = [action.payload.items];
@@ -21,11 +32,7 @@ export const refreshSlotsReducer: CaseReducer<State, PayloadAction<Payload>> = (
     Object.values(action.payload.items)
       .filter((data) => !!data)
       .forEach((data) => {
-        const targetInventory = data.inventory
-          ? data.inventory !== InventoryType.PLAYER
-            ? state.rightInventory
-            : state.leftInventory
-          : state.leftInventory;
+        const targetInventory = data.inventory ? resolveInventoryPanel(state, data.inventory) : state.leftInventory;
 
         data.item.durability = itemDurability(data.item.metadata, curTime);
         targetInventory.items[data.item.slot - 1] = data.item;
@@ -55,12 +62,7 @@ export const refreshSlotsReducer: CaseReducer<State, PayloadAction<Payload>> = (
   if (action.payload.weightData) {
     const inventoryId = action.payload.weightData.inventoryId;
     const inventoryMaxWeight = action.payload.weightData.maxWeight;
-    const inv =
-      inventoryId === state.leftInventory.id
-        ? 'leftInventory'
-        : inventoryId === state.rightInventory.id
-        ? 'rightInventory'
-        : null;
+    const inv = resolveInventoryKey(state, inventoryId);
 
     if (!inv) return;
 
@@ -71,12 +73,7 @@ export const refreshSlotsReducer: CaseReducer<State, PayloadAction<Payload>> = (
     const { inventoryId } = action.payload.slotsData;
     const { slots } = action.payload.slotsData;
 
-    const inv =
-      inventoryId === state.leftInventory.id
-        ? 'leftInventory'
-        : inventoryId === state.rightInventory.id
-        ? 'rightInventory'
-        : null;
+    const inv = resolveInventoryKey(state, inventoryId);
 
     if (!inv) return;
 
@@ -86,6 +83,7 @@ export const refreshSlotsReducer: CaseReducer<State, PayloadAction<Payload>> = (
       payload: {
         leftInventory: inv === 'leftInventory' ? state[inv] : undefined,
         rightInventory: inv === 'rightInventory' ? state[inv] : undefined,
+        backpackInventory: state.backpackInventory.id !== '' ? state.backpackInventory : undefined,
       },
     });
   }

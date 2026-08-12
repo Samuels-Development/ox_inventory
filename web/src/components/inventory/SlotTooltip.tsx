@@ -5,8 +5,9 @@ import { Locale } from '../../store/locale';
 import ReactMarkdown from 'react-markdown';
 import { useAppSelector } from '../../store';
 import ClockIcon from '../utils/icons/ClockIcon';
-import { getItemUrl } from '../../helpers';
+import { getItemRarity, getItemRarityKey, getItemUrl } from '../../helpers';
 import Divider from '../utils/Divider';
+import ItemImage from '../utils/ItemImage';
 
 const formatWeight = (weight: number): string => {
   if (weight >= 1000) {
@@ -27,6 +28,12 @@ const SlotTooltip: React.ForwardRefRenderFunction<
   }, [item]);
   const description = item.metadata?.description || itemData?.description;
   const ammoName = itemData?.ammoName && Items[itemData?.ammoName]?.label;
+  const rarity = useMemo(() => getItemRarity(item), [item]);
+  const rarityColor = useMemo(() => {
+    const key = getItemRarityKey(item);
+
+    return key && rarity ? `var(--ox-rarity-${key}, ${rarity.color})` : undefined;
+  }, [item, rarity]);
 
   return (
     <>
@@ -40,7 +47,9 @@ const SlotTooltip: React.ForwardRefRenderFunction<
       ) : (
         <div style={{ ...style }} className="tooltip-wrapper" ref={ref}>
           <div className="tooltip-header-wrapper">
-            <p>{item.metadata?.label || itemData.label || item.name}</p>
+            <p style={rarityColor ? { color: rarityColor } : undefined}>
+              {item.metadata?.label || itemData.label || item.name}
+            </p>
             {inventoryType === 'crafting' ? (
               <div className="tooltip-crafting-duration">
                 <ClockIcon />
@@ -50,6 +59,11 @@ const SlotTooltip: React.ForwardRefRenderFunction<
               <span className="tooltip-weight">{formatWeight(item.weight)}</span>
             )}
           </div>
+          {rarity && (
+            <div className="tooltip-rarity" style={{ color: rarityColor }}>
+              {rarity.label}
+            </div>
+          )}
           <Divider />
           {description && (
             <div className="tooltip-description">
@@ -108,7 +122,7 @@ const SlotTooltip: React.ForwardRefRenderFunction<
                   const [item, count] = [ingredient[0], ingredient[1]];
                   return (
                     <div className="tooltip-ingredient" key={`ingredient-${item}`}>
-                      <img src={item ? getItemUrl(item) : 'none'} alt="item-image" />
+                      <ItemImage src={item ? getItemUrl(item) : undefined} />
                       <p>
                         {count >= 1
                           ? `${count}x ${Items[item]?.label || item}`

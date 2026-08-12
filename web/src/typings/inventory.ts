@@ -5,6 +5,7 @@ export enum InventoryType {
   SHOP = 'shop',
   CONTAINER = 'container',
   CRAFTING = 'crafting',
+  BACKPACK = 'backpack',
 }
 
 export type Inventory = {
@@ -16,3 +17,11 @@ export type Inventory = {
   label?: string;
   groups?: Record<string, number>;
 };
+
+export const createEmptyInventory = (): Inventory => ({
+  id: '',
+  type: '',
+  slots: 0,
+  maxWeight: 0,
+  items: [],
+});

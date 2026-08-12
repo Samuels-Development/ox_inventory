@@ -184,6 +184,34 @@ exports('GetPlayerMaxWeight', function()
 end)
 
 local Items = require 'modules.items.client'
+local Grid = require 'modules.grid.shared'
+
+Grid.setItemResolver(function(name) return Items(name) end)
+
+---@param slot number
+---@param itemName string
+---@param metadata? table
+---@param ignoreSlot? number|table<number, true> slot(s) treated as empty
+---@return boolean, string?
+function Inventory.CanPlaceItem(slot, itemName, metadata, ignoreSlot)
+    local item = Items(itemName)
+
+    if not item then return false, 'invalid_item' end
+
+    local inventory = {
+        type = 'player',
+        slots = Grid.getPlayerSlots(),
+        items = PlayerData.inventory
+    }
+
+    if Grid.isEquipSlot(inventory, slot) then
+        return Grid.canEquip(inventory, slot, item)
+    end
+
+    local width, height = Grid.getItemSize(item, metadata)
+
+    return Grid.canPlace(inventory, slot, width, height, ignoreSlot)
+end
 
 local function assertMetadata(metadata)
     if metadata and type(metadata) ~= 'table' then

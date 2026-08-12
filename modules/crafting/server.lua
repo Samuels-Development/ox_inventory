@@ -3,6 +3,7 @@ if not lib then return end
 local CraftingBenches = {}
 local Items = require 'modules.items.server'
 local Inventory = require 'modules.inventory.server'
+local Grid = require 'modules.grid.shared'
 
 ---@param id number
 ---@param data table
@@ -222,7 +223,7 @@ lib.callback.register('ox_inventory:craftItem', function(source, id, index, reci
 						end
 
 						if invSlot.count > 1 then
-							local emptySlot = Inventory.GetEmptySlot(left)
+							local emptySlot = Inventory.GetEmptySlot(left, item)
 
 							if emptySlot then
 								local newItem = Inventory.SetSlot(left, item, 1, table.deepclone(invSlot.metadata), emptySlot)
@@ -251,7 +252,11 @@ lib.callback.register('ox_inventory:craftItem', function(source, id, index, reci
 					end
 				end
 
-				Inventory.AddItem(left, craftedItem, craftCount, recipe.metadata or {}, craftedItem.stack and toSlot or nil)
+				-- `toSlot` comes straight from the NUI; AddItem falls back to its own search
+				-- when the requested slot is out of range or cannot hold the item.
+				local craftedSlot = craftedItem.stack and Grid.isSlotId(toSlot, left.slots) and toSlot or nil
+
+				Inventory.AddItem(left, craftedItem, craftCount, recipe.metadata or {}, craftedSlot)
 			end
 
 			return success

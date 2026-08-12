@@ -1,0 +1,273 @@
+
+@function ui($n) {
+  @return calc(#{$n} * var(--ox-u, 1vh));
+}
+
+@function hair($n) {
+  @return max(#{$n}vh, calc(#{$n} * var(--ox-u, 1vh)));
+}
+
+@function band($rows, $row, $gap, $chrome, $share: 1) {
+  $h: $rows * $row + ($rows - 1) * $gap;
+  $budget: calc(var(--ox-column-max) - #{$chrome} * var(--ox-u, 1vh));
+
+  @if $share != 1 {
+    $budget: calc((var(--ox-column-max) - #{$chrome} * var(--ox-u, 1vh)) / #{$share});
+  }
+
+  @return min(calc(#{$h} * var(--ox-u, 1vh)), $budget);
+}
+
+:root {
+  --ox-scale: 1;
+
+  --ox-u: min(calc(1vh * var(--ox-scale, 1)), max(1vh, calc((100vw - 46.9934vh) / 99.8438)));
+
+  --ox-slot-k: 1;
+  --ox-gap-k: 1;
+  --ox-radius-k: 1;
+  --ox-text-k: 1;
+  --ox-img-k: 1;
+  --ox-fill-k: 1;
+  --ox-border-k: 1;
+  --ox-figure-opacity: 0.26;
+
+  --ox-column-max: calc(100vh - 11.2 * var(--ox-u, 1vh));
+
+  --ox-dim: 0.9;
+  --ox-dim-k: 1;
+
+  --ox-bg-1: rgba(74, 75, 74, 0);
+  --ox-bg-2: rgba(77, 77, 77, 0.05);
+  --ox-bg-3: rgba(138, 138, 138, 0.1);
+  --ox-rgb-1: rgba(224, 224, 224, 0.1);
+  --ox-rgb-2: rgba(228, 228, 228, 0.05);
+  --ox-main: #d6d6d6;
+  --ox-secondary: #757575;
+  --ox-text-shadow: rgba(226, 226, 226, 0.36);
+  --ox-photo-shadow: rgba(221, 221, 221, 0.3);
+
+  --ox-rarity-common: #9ca3af;
+  --ox-rarity-uncommon: #4ade80;
+  --ox-rarity-rare: #38bdf8;
+  --ox-rarity-epic: #a855f7;
+  --ox-rarity-legendary: #f59e0b;
+  --ox-rarity-mythic: #fb7185;
+
+  --ox-hairline: #{hair(0.0463)};
+  --ox-line: #{hair(0.0926)};
+
+  --ox-radius-sm: calc(#{ui(0.3704)} * var(--ox-radius-k, 1));
+  --ox-radius-md: calc(#{ui(0.463)} * var(--ox-radius-k, 1));
+  --ox-radius-lg: calc(#{ui(0.5556)} * var(--ox-radius-k, 1));
+  --ox-radius-pill: calc(#{ui(4.6296)} * var(--ox-radius-k, 1));
+
+  --ox-slot-w: calc(#{ui(9.15)} * var(--ox-slot-k, 1));
+  --ox-slot-h: calc(#{ui(10)} * var(--ox-slot-k, 1));
+  --ox-cell: calc(#{ui(5.5)} * var(--ox-slot-k, 1));
+  --ox-centre-reserve: 11vh;
+  --ox-cell-gap: calc(#{ui(0.463)} * var(--ox-gap-k, 1));
+  --ox-gap: calc(#{ui(0.58)} * var(--ox-gap-k, 1));
+  --ox-gap-hotbar: #{ui(0.65)};
+  --ox-gap-panel: #{ui(1.8519)};
+
+  --ox-panel-w: calc(5 * var(--ox-slot-w) + 4 * var(--ox-gap) + 2.33vh);
+  --ox-grid-rows-left: 4;
+  --ox-grid-rows-right: 6;
+  --ox-grid-h-left: #{band(4, 10, 0.58, 33.2)};
+  --ox-grid-h-right: #{band(6, 10, 0.58, 11)};
+  --ox-grid-rows-right-split: 3;
+  --ox-grid-rows-backpack: 3;
+  --ox-grid-h-right-split: #{band(3, 10, 0.58, 23.6, 2)};
+  --ox-grid-h-backpack: #{band(3, 10, 0.58, 23.6, 2)};
+  --ox-spatial-rows-left: 6;
+  --ox-spatial-rows-right: 9;
+  --ox-spatial-h-left: #{band(6, 5.5, 0.463, 33.2)};
+  --ox-spatial-h-right: #{band(9, 5.5, 0.463, 11)};
+  --ox-spatial-rows-right-split: 5;
+  --ox-spatial-rows-backpack: 5;
+  --ox-spatial-h-right-split: #{band(5, 5.5, 0.463, 23.6, 2)};
+  --ox-spatial-h-backpack: #{band(5, 5.5, 0.463, 23.6, 2)};
+  --ox-ped-gap: 34vh;
+  --ox-ped-h: 58vh;
+  --ox-icon-tile: #{ui(3.7037)};
+  --ox-icon-glyph: #{ui(1.6667)};
+
+  --ox-weight-drop: 0;
+
+  --ox-scrim: rgba(11, 13, 17, var(--ox-dim, 0.9));
+  --ox-scrim-focus: radial-gradient(
+    ellipse 15% 34% at 50% 66%,
+    rgba(0, 0, 1, calc(0.1 * var(--ox-dim-k, 1))) 0%,
+    rgba(2, 3, 4, calc(0.15 * var(--ox-dim-k, 1))) 26%,
+    rgba(4, 5, 7, calc(0.27 * var(--ox-dim-k, 1))) 44%,
+    rgba(6, 7, 10, calc(0.43 * var(--ox-dim-k, 1))) 58%,
+    rgba(8, 9, 13, calc(0.6 * var(--ox-dim-k, 1))) 70%,
+    rgba(9, 11, 15, calc(0.74 * var(--ox-dim-k, 1))) 80%,
+    rgba(10, 12, 16, calc(0.83 * var(--ox-dim-k, 1))) 88%,
+    rgba(11, 13, 17, calc(0.88 * var(--ox-dim-k, 1))) 95%,
+    rgba(11, 13, 17, calc(0.9 * var(--ox-dim-k, 1))) 100%
+  );
+
+  --ox-panel-fill: var(--ox-bg-1);
+  --ox-slot-fill: rgba(153, 153, 153, calc(0.05 * var(--ox-fill-k, 1)));
+  --ox-slot-hover: var(--ox-bg-3);
+  --ox-hotbar-fill: rgba(48, 48, 48, 0.26);
+  --ox-menu-fill: rgba(27, 29, 32, 0.9);
+  --ox-tooltip-fill: rgba(42, 44, 43, 0.97);
+  --ox-notif-fill: rgba(43, 43, 43, 0.233);
+  --ox-badge-fill: rgba(61, 61, 61, 0.151);
+  --ox-chip-fill: rgba(153, 153, 153, 0.1);
+  --ox-pill-fill: rgba(255, 255, 255, 0.065);
+  --ox-input-fill: rgba(255, 255, 255, 0.04);
+  --ox-labelbar: #00000060;
+  --ox-track: rgba(0, 0, 0, 0.4);
+  --ox-track-durability: rgba(0, 0, 0, 0.5);
+
+  --ox-tint-slot: 0.4;
+  --ox-tint-photo: 0.12;
+
+  --ox-sheen: radial-gradient(
+    188.13% 188.13% at 50% 50%,
+    rgba(153, 153, 153, 0.05) 0%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  --ox-tile: radial-gradient(87.5% 87.5% at 50% 50%, var(--ox-rgb-1) 0%, var(--ox-rgb-2) 100%);
+
+  --ox-stroke-05: rgba(255, 255, 255, calc(0.05 * var(--ox-border-k, 1)));
+  --ox-stroke-10: rgba(255, 255, 255, 0.1);
+  --ox-stroke-12: rgba(255, 255, 255, 0.12);
+  --ox-stroke-16: rgba(255, 255, 255, 0.158);
+  --ox-stroke-20: rgba(255, 255, 255, 0.2);
+  --ox-stroke-30: rgba(255, 255, 255, 0.3);
+  --ox-stroke-drag: rgba(255, 255, 255, 0.4);
+
+  --ox-font: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --ox-fs-micro: calc(#{ui(0.9259)} * var(--ox-text-k, 1));
+  --ox-fs-sm: calc(#{ui(1.1111)} * var(--ox-text-k, 1));
+  --ox-fs-md: calc(#{ui(1.2963)} * var(--ox-text-k, 1));
+  --ox-fs-lg: calc(#{ui(1.3889)} * var(--ox-text-k, 1));
+  --ox-fs-title: calc(#{ui(1.4815)} * var(--ox-text-k, 1));
+  --ox-fs-dialog: calc(#{ui(1.6667)} * var(--ox-text-k, 1));
+
+  --ox-text-1: #fff;
+  --ox-text-2: rgba(255, 255, 255, 0.5);
+  --ox-text-3: rgba(255, 255, 255, 0.4675);
+  --ox-text-muted: rgb(151, 151, 151);
+  --ox-shadow-text: #{ui(0.1)} #{ui(0.1)} 0 rgba(0, 0, 0, 0.7);
+  --ox-glow-text: #{ui(0.3)};
+
+  --ox-money: #2ecc71;
+  --ox-money-alt: #e74c3c;
+
+  --ox-t-fast: 200ms;
+  --ox-t-slot: 250ms;
+  --ox-t-menu: 300ms;
+  --ox-t-scrim: 375ms;
+  --ox-slide-up: #{ui(18.5185)};
+}
+
+.high-contrast {
+  --ox-text-2: rgba(255, 255, 255, 0.85);
+  --ox-text-3: rgba(255, 255, 255, 0.8);
+  --ox-text-muted: rgb(225, 225, 225);
+  --ox-stroke-05: rgba(255, 255, 255, calc(0.28 * var(--ox-border-k, 1)));
+  --ox-stroke-10: rgba(255, 255, 255, 0.4);
+  --ox-stroke-12: rgba(255, 255, 255, 0.45);
+  --ox-stroke-16: rgba(255, 255, 255, 0.5);
+  --ox-stroke-20: rgba(255, 255, 255, 0.55);
+  --ox-labelbar: #000000b0;
+}
+
+.reduce-transparency {
+  --ox-menu-fill: rgb(24, 26, 30);
+  --ox-hotbar-fill: rgb(30, 32, 36);
+  --ox-badge-fill: rgb(46, 48, 52);
+  --ox-chip-fill: rgb(48, 50, 54);
+  --ox-pill-fill: rgb(52, 54, 58);
+  --ox-input-fill: rgb(44, 46, 50);
+  --ox-labelbar: #0b0d11;
+  --ox-slot-fill: rgba(153, 153, 153, calc(0.16 * var(--ox-fill-k, 1)));
+}
+
+.bold-text {
+  -webkit-text-stroke: 0.023em currentColor;
+}
+
+.focus-ring :focus-visible {
+  outline: max(2px, #{hair(0.1852)}) solid var(--ox-main);
+  outline-offset: max(2px, #{hair(0.1852)});
+}
+
+body {
+  margin: 0;
+  font-family: var(--ox-font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  height: 100vh;
+  background: none !important;
+  overflow: hidden !important;
+  user-select: none;
+}
+
+#root {
+  height: 100%;
+}
+
+p {
+  margin: 0;
+  padding: 0;
+  font-family: var(--ox-font);
+}
+
+input,
+button,
+textarea,
+select {
+  font-family: var(--ox-font);
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+button:active {
+  transform: translateY(0.2778vh);
+}
+
+.app-wrapper {
+  height: 100%;
+  width: 100%;
+  color: var(--ox-text-1);
+}
+
+.divider {
+  width: 100%;
+  height: var(--ox-line);
+  background-color: var(--ox-stroke-12);
+}
+
+@mixin slot-wash {
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    border-radius: inherit;
+    background-color: var(--ox-bg-2);
+    opacity: var(--ox-tint-slot);
+    pointer-events: none;
+  }
+}

@@ -1,12 +1,20 @@
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { DragSource, Inventory, InventoryType, Slot, SlotWithItem } from '../../typings';
 import { useDrag, useDragDropManager, useDrop } from 'react-dnd';
 import { useAppDispatch } from '../../store';
 import WeightBar from '../utils/WeightBar';
+import ItemImage from '../utils/ItemImage';
 import { onDrop } from '../../dnd/onDrop';
 import { onBuy } from '../../dnd/onBuy';
 import { Items } from '../../store/items';
-import { canCraftItem, canPurchaseItem, getItemUrl, isSlotWithItem } from '../../helpers';
+import {
+  canCraftItem,
+  canPurchaseItem,
+  getItemRarity,
+  getItemRarityKey,
+  getItemUrl,
+  isSlotWithItem,
+} from '../../helpers';
 import { onUse } from '../../dnd/onUse';
 import { Locale } from '../../store/locale';
 import { onCraft } from '../../dnd/onCraft';
@@ -15,6 +23,17 @@ import { ItemsPayload } from '../../reducers/refreshSlots';
 import { closeTooltip, openTooltip } from '../../store/tooltip';
 import { openContextMenu } from '../../store/contextMenu';
 import { useMergeRefs } from '@floating-ui/react';
+import { getBooleanPref, getNumberPref } from '../../store/preferences';
+
+const NEUTRAL_RARITY = 'common';
+
+const formatSlotWeight = (weight?: number): string => {
+  if (!weight) return '';
+
+  return weight >= 1000
+    ? `${(weight / 1000).toLocaleString('en-us', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}kg`
+    : `${weight.toLocaleString('en-us', { maximumFractionDigits: 0 })}g`;
+};
 
 interface SlotProps {
   inventoryId: Inventory['id'];
@@ -121,44 +140,37 @@ const InventorySlot: React.ForwardRefRenderFunction<HTMLDivElement, SlotProps> =
 
   const isEmpty = !item?.name;
 
+  const rarity = useMemo(() => getItemRarity(item), [item]);
+  const rarityKey = useMemo(() => getItemRarityKey(item), [item]);
+  const hasRarityAccent = rarityKey !== undefined && rarityKey !== NEUTRAL_RARITY;
+
+  const className = `inventory-slot${isEmpty ? ' inventory-slot-empty' : ''}${
+    isOver ? ' inventory-slot-hover' : ''
+  }${rarityKey ? ` rarity-${rarityKey}` : ''}`;
+
+  const style: React.CSSProperties = {
+    filter:
+      !isEmpty &&
+      (!canPurchaseItem(item, { type: inventoryType, groups: inventoryGroups }) ||
+        !canCraftItem(item, inventoryType))
+        ? 'brightness(80%) grayscale(100%)'
+        : undefined,
+    opacity: isDragging ? 0.4 : 1.0,
+    ...(rarity ? ({ '--slot-rarity': rarity.color } as React.CSSProperties) : null),
+  };
+
   return (
-    <div
-      ref={refs}
-      onContextMenu={handleContext}
-      onClick={handleClick}
-      className={`inventory-slot ${isEmpty ? 'inventory-slot-empty' : ''}`}
-      style={{
-        filter:
-          !isEmpty && (!canPurchaseItem(item, { type: inventoryType, groups: inventoryGroups }) || !canCraftItem(item, inventoryType))
-            ? 'brightness(80%) grayscale(100%)'
-            : undefined,
-        opacity: isDragging ? 0.4 : 1.0,
-        border: isOver ? '1px dashed rgba(74, 222, 128, 0.5)' : '',
-        backgroundColor: isOver && isEmpty ? 'rgba(74, 222, 128, 0.1)' : undefined,
-      }}
-    >
-      {/* Empty slot + icon */}
-      {isEmpty && (
-        <div className="empty-slot-icon-wrapper">
-          <div className="empty-slot-icon-bg">
-            <svg
-              className="empty-slot-icon"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-            </svg>
-          </div>
-        </div>
-      )}
+    <div ref={refs} onContextMenu={handleContext} onClick={handleClick} className={className} style={style}>
+      {hasRarityAccent && <div className="inventory-slot-rarity-glow" />}
       {isSlotWithItem(item) && (
         <div
           className="item-slot-wrapper"
           onMouseEnter={() => {
+            if (!getBooleanPref('showTooltips')) return;
+
             timerRef.current = window.setTimeout(() => {
               dispatch(openTooltip({ item, inventoryType }));
-            }, 500) as unknown as number;
+            }, getNumberPref('tooltipDelay')) as unknown as number;
           }}
           onMouseLeave={() => {
             dispatch(closeTooltip());
@@ -171,28 +183,38 @@ const InventorySlot: React.ForwardRefRenderFunction<HTMLDivElement, SlotProps> =
           {/* Noise texture overlay */}
           <div className="inventory-slot-noise" />
 
+          <ItemImage src={getItemUrl(item as SlotWithItem)} className="inventory-slot-image" />
+
           {/* Hotbar slot number - top left */}
-          {inventoryType === 'player' && item.slot <= 5 && (
-            <div className="inventory-slot-number">{item.slot}</div>
-          )}
+          {inventoryType === 'player' && item.slot <= 5 && <div className="inventory-slot-number">{item.slot}</div>}
 
-          {/* Count badge - top right */}
-          {item.count && item.count > 0 && (
-            <div className="inventory-slot-count">{item.count}</div>
-          )}
-
-          {/* Centered item image */}
-          <img
-            src={getItemUrl(item as SlotWithItem)}
-            alt={item.name}
-            className="inventory-slot-image"
-            draggable={false}
-          />
-
-          {/* Item label */}
-          <div className="inventory-slot-label">
-            {item.metadata?.label ? item.metadata.label : Items[item.name]?.label || item.name}
+          <div className="inventory-slot-count">
+            <span className="inventory-slot-weight">{formatSlotWeight(item.weight)}</span>
+            <span className="inventory-slot-quantity">
+              {item.count ? `${item.count.toLocaleString('en-us')}x` : ''}
+            </span>
           </div>
+
+          {/* Shop price */}
+          {inventoryType === 'shop' && item?.price !== undefined && item.price > 0 && (
+            <div className="inventory-slot-price">
+              {item?.currency !== 'money' && item.currency !== 'black_money' && item.currency ? (
+                <>
+                  <ItemImage src={getItemUrl(item.currency)} className="inventory-slot-currency-icon" />
+                  <span>{item.price.toLocaleString('en-us')}</span>
+                </>
+              ) : (
+                <span
+                  style={{
+                    color: item.currency === 'money' || !item.currency ? 'var(--ox-money)' : 'var(--ox-money-alt)',
+                  }}
+                >
+                  {Locale.$ || '$'}
+                  {item.price.toLocaleString('en-us')}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Durability bar */}
           {inventoryType !== 'shop' && item?.durability !== undefined && (
@@ -201,27 +223,13 @@ const InventorySlot: React.ForwardRefRenderFunction<HTMLDivElement, SlotProps> =
             </div>
           )}
 
-          {/* Shop price */}
-          {inventoryType === 'shop' && item?.price !== undefined && item.price > 0 && (
-            <div className="inventory-slot-price">
-              {item?.currency !== 'money' && item.currency !== 'black_money' && item.currency ? (
-                <>
-                  <img
-                    src={getItemUrl(item.currency)}
-                    alt="currency"
-                    className="inventory-slot-currency-icon"
-                  />
-                  <span>{item.price.toLocaleString('en-us')}</span>
-                </>
-              ) : (
-                <span style={{ color: item.currency === 'money' || !item.currency ? '#4ade80' : '#f87171' }}>
-                  {Locale.$ || '$'}{item.price.toLocaleString('en-us')}
-                </span>
-              )}
-            </div>
-          )}
+          {/* Item label */}
+          <div className="inventory-slot-label">
+            {item.metadata?.label ? item.metadata.label : Items[item.name]?.label || item.name}
+          </div>
         </div>
       )}
+      {hasRarityAccent && <div className="inventory-slot-rarity-corner" />}
     </div>
   );
 };

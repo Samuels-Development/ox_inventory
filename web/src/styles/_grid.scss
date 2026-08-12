@@ -1,0 +1,136 @@
+
+@use './tokens';
+
+.spatial-grid {
+  position: relative;
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  --ox-cell-max: var(--ox-cell);
+  --ox-spatial-pad: 1.1111vh;
+  padding: 0 var(--ox-spatial-pad);
+  overflow: auto;
+}
+
+.inventory-side.left .spatial-grid {
+  max-height: var(--ox-spatial-h-left);
+}
+
+.inventory-side.right .spatial-grid {
+  max-height: var(--ox-spatial-h-right);
+}
+
+.spatial-grid-cells {
+  position: relative;
+  display: grid;
+  --ox-cell: min(var(--ox-cell-max), var(--ox-cell-fit, 100vh));
+  grid-auto-rows: var(--ox-cell);
+  gap: var(--ox-cell-gap);
+  justify-content: start;
+  align-content: start;
+  width: max-content;
+  margin: 0 auto;
+}
+
+.spatial-cell {
+  position: relative;
+  border-radius: var(--ox-radius-sm);
+  border: var(--ox-hairline) solid var(--ox-stroke-05);
+  background-color: var(--ox-slot-fill);
+  transition: border-color var(--ox-t-slot), background-color var(--ox-t-slot);
+
+  @include tokens.slot-wash;
+}
+
+.spatial-cell-covered {
+  border-color: transparent;
+  background-color: transparent;
+
+  &::before {
+    content: none;
+  }
+}
+
+.spatial-grid-dragging {
+  .spatial-cell:not(.spatial-cell-covered) {
+    border-color: var(--ox-stroke-10);
+  }
+
+  .spatial-item {
+    pointer-events: none;
+  }
+}
+
+.spatial-item {
+  position: absolute;
+  z-index: 2;
+  cursor: grab;
+
+  &:hover {
+    z-index: 3;
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  .inventory-slot-image {
+    width: 62%;
+    height: 62%;
+  }
+}
+
+.spatial-item-rotate-icon {
+  position: absolute;
+  right: 0.15vh;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.3vh;
+  height: 1.3vh;
+  color: var(--ox-text-2);
+  pointer-events: none;
+
+  svg {
+    width: 0.8333vh;
+    height: 0.8333vh;
+  }
+}
+
+.spatial-item-rotated {
+  border-color: var(--ox-stroke-20);
+
+  .inventory-slot-label {
+    padding-right: 1.45vh;
+  }
+}
+
+.spatial-item-dimmed {
+  opacity: 0.22;
+  filter: grayscale(70%);
+
+  &:hover {
+    opacity: 0.45;
+  }
+}
+
+.spatial-ghost {
+  position: absolute;
+  z-index: 5;
+  border-radius: var(--ox-radius-sm);
+  border: var(--ox-line) dashed var(--ox-stroke-30);
+  background-color: var(--ox-slot-hover);
+  pointer-events: none;
+}
+
+.spatial-drop-valid {
+  border-color: rgba(46, 204, 113, 0.7);
+  background-color: rgba(46, 204, 113, 0.14);
+}
+
+.spatial-drop-invalid {
+  border-color: rgba(231, 76, 60, 0.7);
+  background-color: rgba(231, 76, 60, 0.14);
+}

@@ -12,6 +12,9 @@ local Query = {
     UPDATE_TRUNK = 'UPDATE `{vehicle_table}` SET trunk = ? WHERE `{vehicle_column}` = ?',
     UPDATE_GLOVEBOX = 'UPDATE `{vehicle_table}` SET glovebox = ? WHERE `{vehicle_column}` = ?',
     UPDATE_PLAYER = 'UPDATE `{user_table}` SET inventory = ? WHERE `{user_column}` = ?',
+    SELECT_SETTINGS = 'SELECT settings FROM ox_inventory_settings WHERE owner = ?',
+    UPSERT_SETTINGS =
+    'INSERT INTO ox_inventory_settings (owner, settings) VALUES (?, ?) ON DUPLICATE KEY UPDATE settings = VALUES(settings)',
 }
 
 Citizen.CreateThreadNow(function()
@@ -153,6 +156,93 @@ end
 
 function db.loadTrunk(id)
     return MySQL.prepare.await(Query.SELECT_TRUNK, { id })
+end
+
+
+---`nil` while the DDL below is still running, then `true`/`false`.
+local settingsStatus ---@type boolean?
+local settingsWarned = false
+
+---@param err any
+local function warnSettingsOnce(err)
+    if settingsWarned then return end
+
+    settingsWarned = true
+
+    warn(('unable to access `ox_inventory_settings` - interface themes will not persist (%s)'):format(err))
+end
+
+-- Deliberately its own thread: the settings table needs none of the framework table/column
+-- resolution above, so it must still be created for frameworks that bail out of that thread.
+Citizen.CreateThreadNow(function()
+    Wait(0)
+
+    local success, err = pcall(MySQL.query.await, [[CREATE TABLE IF NOT EXISTS `ox_inventory_settings` (
+		`owner` varchar(60) NOT NULL,
+		`settings` longtext DEFAULT NULL,
+		PRIMARY KEY (`owner`)
+	)]])
+
+    settingsStatus = success
+
+    if not success then warnSettingsOnce(err) end
+end)
+
+---Only ever waits during the first moments of a server start, while the DDL is in flight.
+---@return boolean
+local function settingsReady()
+    for _ = 1, 40 do
+        if settingsStatus ~= nil then break end
+
+        Wait(50)
+    end
+
+    return settingsStatus == true
+end
+
+---@param owner string
+---@return table? settings decoded settings blob, or nil when unavailable
+function db.loadSettings(owner)
+    if type(owner) ~= 'string' or owner == '' then return end
+    if not settingsReady() then return end
+
+    local success, result = pcall(MySQL.prepare.await, Query.SELECT_SETTINGS, { owner })
+
+    if not success then
+        warnSettingsOnce(result)
+        return
+    end
+
+    if type(result) ~= 'string' then return end
+
+    local decoded, settings = pcall(json.decode, result)
+
+    if not decoded or type(settings) ~= 'table' then return end
+
+    return settings
+end
+
+---@param owner string
+---@param settings table already validated by the caller
+---@return boolean
+function db.saveSettings(owner, settings)
+    if type(owner) ~= 'string' or owner == '' then return false end
+    if not settingsReady() then return false end
+
+    local encoded, payload = pcall(json.encode, settings)
+
+    if not encoded then return false end
+
+    -- The return value is an insertId that is always 0 for this table, so success is simply
+    -- "the statement ran" - oxmysql raises on a query error, which the pcall turns into false.
+    local success, err = pcall(MySQL.prepare.await, Query.UPSERT_SETTINGS, { owner, payload })
+
+    if not success then
+        warnSettingsOnce(err)
+        return false
+    end
+
+    return true
 end
 
 ---@param rows number | MySQLQuery | MySQLQuery[]

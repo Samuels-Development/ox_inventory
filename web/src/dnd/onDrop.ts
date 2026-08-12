@@ -1,16 +1,21 @@
-import { canStack, findAvailableSlot, getTargetInventory, isSlotWithItem } from '../helpers';
+import { canStack, findAvailableSlot, getBaseSlotCount, getTargetInventory, isSlotWithItem } from '../helpers';
 import { validateMove } from '../thunks/validateItems';
 import { store } from '../store';
-import { DragSource, DropTarget, InventoryType, SlotWithItem } from '../typings';
+import { DragSource, DropTarget, Inventory, InventoryType, SlotWithItem } from '../typings';
 import { moveSlots, stackSlots, swapSlots } from '../store/inventory';
 import { Items } from '../store/items';
+
+export const isContainerPanel = (type: Inventory['type']): boolean =>
+  type === InventoryType.CONTAINER || type === InventoryType.BACKPACK;
 
 export const onDrop = (source: DragSource, target?: DropTarget) => {
   const { inventory: state } = store.getState();
 
   const { sourceInventory, targetInventory } = getTargetInventory(state, source.inventory, target?.inventory);
 
-  const sourceSlot = sourceInventory.items[source.item.slot - 1] as SlotWithItem;
+  const sourceSlot = sourceInventory.items[source.item.slot - 1] as SlotWithItem | undefined;
+
+  if (!sourceSlot?.name) return console.error('Source slot is no longer present!');
 
   const sourceData = Items[sourceSlot.name];
 
@@ -19,17 +24,16 @@ export const onDrop = (source: DragSource, target?: DropTarget) => {
   // If dragging from container slot
   if (sourceSlot.metadata?.container !== undefined) {
     // Prevent storing container in container
-    if (targetInventory.type === InventoryType.CONTAINER)
+    if (isContainerPanel(targetInventory.type))
       return console.log(`Cannot store container ${sourceSlot.name} inside another container`);
 
-    // Prevent dragging of container slot when opened
     if (state.rightInventory.id === sourceSlot.metadata.container)
       return console.log(`Cannot move container ${sourceSlot.name} when opened`);
   }
 
   const targetSlot = target
     ? targetInventory.items[target.item.slot - 1]
-    : findAvailableSlot(sourceSlot, sourceData, targetInventory.items);
+    : findAvailableSlot(sourceSlot, sourceData, targetInventory.items.slice(0, getBaseSlotCount(targetInventory)));
 
   if (targetSlot === undefined) return console.error('Target slot undefined!');
 

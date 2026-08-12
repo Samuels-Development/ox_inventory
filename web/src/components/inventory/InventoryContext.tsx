@@ -4,7 +4,7 @@ import { onDrop } from '../../dnd/onDrop';
 import { Items } from '../../store/items';
 import { fetchNui } from '../../utils/fetchNui';
 import { Locale } from '../../store/locale';
-import { isSlotWithItem } from '../../helpers';
+import { canToggleFavourite, isFavouritableItem, isFavouriteItem, isSlotWithItem, toggleFavourite } from '../../helpers';
 import { setClipboard } from '../../utils/setClipboard';
 import { useAppSelector } from '../../store';
 import React from 'react';
@@ -52,6 +52,9 @@ const InventoryContext: React.FC = () => {
       case 'drop':
         isSlotWithItem(item) && onDrop({ item: item, inventory: 'player' });
         break;
+      case 'favourite':
+        toggleFavourite(item.name);
+        break;
       case 'remove':
         fetchNui('removeComponent', { component: data?.component, slot: data?.slot });
         break;
@@ -95,6 +98,17 @@ const InventoryContext: React.FC = () => {
         <MenuItem onClick={() => handleClick({ action: 'use' })} label={Locale.ui_use || 'Use'} />
         <MenuItem onClick={() => handleClick({ action: 'give' })} label={Locale.ui_give || 'Give'} />
         <MenuItem onClick={() => handleClick({ action: 'drop' })} label={Locale.ui_drop || 'Drop'} />
+        {item && isFavouritableItem(item.name) && (
+          <MenuItem
+            disabled={!canToggleFavourite(item.name)}
+            onClick={() => handleClick({ action: 'favourite' })}
+            label={
+              isFavouriteItem(item.name)
+                ? Locale.ui_unfavourite || 'Unfavourite'
+                : Locale.ui_favourite || 'Favourite'
+            }
+          />
+        )}
         {item && item.metadata?.ammo > 0 && (
           <MenuItem onClick={() => handleClick({ action: 'removeAmmo' })} label={Locale.ui_remove_ammo} />
         )}

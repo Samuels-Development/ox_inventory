@@ -1,0 +1,271 @@
+
+@use './tokens';
+
+.inventory-control {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+
+  .inventory-control-wrapper {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: #{tokens.ui(0.7407)};
+    padding: #{tokens.ui(0.7407)} #{tokens.ui(0.9259)};
+    border: var(--ox-hairline) solid var(--ox-stroke-05);
+    border-radius: var(--ox-radius-md);
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  --ox-control-tile: calc(#{tokens.ui(1.7)} + 2 * #{tokens.ui(0.8)} + 2 * var(--ox-hairline));
+
+  .inventory-control-amount {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: #{tokens.ui(0.37)};
+  }
+
+  .inventory-control-input {
+    box-sizing: border-box;
+    width: #{tokens.ui(6.2)};
+    height: var(--ox-control-tile);
+    text-align: center;
+    outline: none;
+    border: var(--ox-hairline) solid var(--ox-stroke-10);
+    border-radius: var(--ox-radius-md);
+    background: var(--ox-sheen);
+    color: var(--ox-text-1);
+    font-family: var(--ox-font);
+    font-size: var(--ox-fs-md);
+    font-weight: 500;
+    line-height: normal;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.025vh;
+    cursor: text;
+    appearance: textfield;
+    -moz-appearance: textfield;
+    transition: border-color var(--ox-t-fast), background-color var(--ox-t-fast),
+      color var(--ox-t-fast);
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    &::placeholder {
+      color: var(--ox-text-2);
+    }
+
+    &:hover {
+      border-color: var(--ox-stroke-30);
+      background-color: var(--ox-slot-hover);
+    }
+
+    &:focus {
+      border-color: var(--ox-stroke-30);
+      background-color: var(--ox-slot-hover);
+      color: var(--ox-text-1);
+    }
+  }
+
+  .inventory-control-amount .text {
+    color: var(--ox-text-2);
+    font-family: var(--ox-font);
+    font-size: #{tokens.ui(1.02)};
+    font-weight: 500;
+    line-height: normal;
+    letter-spacing: 0.025vh;
+    text-align: center;
+    opacity: 0.75;
+    transition: opacity var(--ox-t-fast), color var(--ox-t-fast);
+  }
+
+  .inventory-control-amount:hover .text,
+  .inventory-control-amount:focus-within .text {
+    color: var(--ox-text-1);
+    opacity: 1;
+  }
+
+  .inventory-control-arrows {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1852vh;
+  }
+
+  .inventory-control-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6667vh;
+    height: 1.2963vh;
+    padding: 0;
+    border: var(--ox-hairline) solid var(--ox-stroke-10);
+    border-radius: var(--ox-radius-sm);
+    background: var(--ox-sheen);
+    color: var(--ox-text-2);
+    opacity: 0.6;
+    cursor: pointer;
+    transition: var(--ox-t-fast);
+
+    svg {
+      width: 0.9259vh;
+      height: 0.9259vh;
+    }
+
+    &:hover {
+      opacity: 1;
+      border-color: var(--ox-stroke-20);
+      color: var(--ox-text-1);
+    }
+  }
+
+  .inventory-control-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: #{tokens.ui(0.37)};
+    padding: 0;
+    border: none;
+    background-color: transparent;
+    color: var(--ox-text-2);
+    font-family: var(--ox-font);
+    font-size: #{tokens.ui(1.02)};
+    font-weight: 500;
+    line-height: normal;
+    letter-spacing: 0.025vh;
+    text-align: center;
+    cursor: pointer;
+    transition: color var(--ox-t-fast);
+
+    svg {
+      width: #{tokens.ui(1.7)};
+      height: #{tokens.ui(1.7)};
+    }
+
+    .text {
+      opacity: 0.75;
+      transition: opacity var(--ox-t-fast);
+    }
+
+    svg {
+      box-sizing: content-box;
+      padding: #{tokens.ui(0.8)};
+      border: var(--ox-hairline) solid var(--ox-stroke-10);
+      border-radius: var(--ox-radius-md);
+      background: var(--ox-sheen);
+      transition: border-color var(--ox-t-fast), background-color var(--ox-t-fast),
+        transform var(--ox-t-fast);
+    }
+
+    &:hover {
+      color: var(--ox-text-1);
+
+      .text {
+        opacity: 1;
+      }
+
+      svg {
+        border-color: var(--ox-stroke-30);
+        background-color: var(--ox-slot-hover);
+        transform: translateY(#{tokens.ui(-0.15)});
+      }
+    }
+
+    &:active svg {
+      transform: translateY(0);
+    }
+  }
+}
+
+.filters {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5vh;
+  padding: 0 1.1111vh 0.7407vh;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.hide-filter-chips .filters .filter {
+  display: none;
+}
+
+.hide-search .inventory-search-container {
+  display: none;
+}
+
+.filters-sort {
+  display: flex;
+  align-items: center;
+  gap: 0.5vh;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.filters-sort-label {
+  color: var(--ox-text-muted);
+  font-size: 1.1vh;
+  font-weight: 500;
+  letter-spacing: 0.025vh;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+.filter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.25vh;
+  height: 2.25vh;
+  padding: 0;
+  border-radius: var(--ox-radius-sm);
+  border: var(--ox-hairline) solid var(--ox-stroke-10);
+  background-color: var(--ox-chip-fill);
+  color: var(--ox-secondary);
+  opacity: 0.7;
+  transition: opacity 0.2s, border-color 0.2s, background-color 0.2s, color 0.2s;
+
+  .filter-text,
+  .text {
+    color: var(--ox-text-muted);
+    text-align: center;
+    font-size: 1.1vh;
+    font-weight: 500;
+    letter-spacing: 0.025vh;
+    line-height: normal;
+  }
+
+  .svg,
+  svg {
+    display: flex;
+    width: 1.75vh;
+    height: 1.75vh;
+  }
+
+  &:hover {
+    cursor: pointer;
+    opacity: 1;
+  }
+}
+
+.filter-active {
+  opacity: 1;
+  border-color: var(--ox-stroke-30);
+  background-color: var(--ox-slot-hover);
+  color: var(--ox-main);
+
+  .filter-text,
+  .text {
+    color: var(--ox-main);
+  }
+}

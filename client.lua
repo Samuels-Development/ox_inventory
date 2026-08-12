@@ -113,6 +113,45 @@ local CraftingBenches = require 'modules.crafting.client'
 local Vehicles = lib.load('data.vehicles')
 local Inventory = require 'modules.inventory.client'
 
+---@type table?
+local backpackInventory
+
+---@type table?
+local currentInjuries
+
+---Runtime state, mirrored from the server; nothing here is stored or restored. The whole list
+---arrives every time, so this is a replace and not a merge.
+RegisterNetEvent('ox_inventory:setInjuries', function(injuries)
+	if source == '' then return end
+	if not shared.ui.injuries?.enabled then return end
+
+	currentInjuries = type(injuries) == 'table' and injuries or {}
+
+	-- Flushed by the `init` block below once the UI exists.
+	if not PlayerData.loaded then return end
+
+	SendNUIMessage({
+		action = 'setInjuries',
+		data = { injuries = currentInjuries }
+	})
+end)
+
+---Only the server ever names the worn bag. `nil` is a real value here - it means the bag came off.
+RegisterNetEvent('ox_inventory:setBackpack', function(data)
+    if source == '' then return end
+
+    backpackInventory = data or nil
+
+    -- A bag equipped or removed while the inventory is open has to reach the UI immediately;
+    -- otherwise the cache above is picked up by the next `setupInventory`.
+    if invOpen then
+        SendNUIMessage({
+            action = 'setupInventory',
+            data = { backpackInventory = backpackInventory }
+        })
+    end
+end)
+
 ---@param inv string?
 ---@param data any?
 ---@return boolean?
@@ -271,6 +310,10 @@ function client.openInventory(inv, data)
 
     if client.screenblur then Utils.blurIn() end
 
+
+
+    Utils.previewPedIn()
+
     currentInventory = right or defaultInventory
     left.items = PlayerData.inventory
     left.groups = PlayerData.groups
@@ -279,7 +322,8 @@ function client.openInventory(inv, data)
         action = 'setupInventory',
         data = {
             leftInventory = left,
-            rightInventory = currentInventory
+            rightInventory = currentInventory,
+            backpackInventory = backpackInventory
         }
     })
 
@@ -328,6 +372,10 @@ RegisterNetEvent('ox_inventory:forceOpenInventory', function(left, right)
 
 	if client.screenblur then Utils.blurIn() end
 
+
+
+	Utils.previewPedIn()
+
 	currentInventory = right or defaultInventory
 	currentInventory.ignoreSecurityChecks = true
 	left.items = PlayerData.inventory
@@ -337,7 +385,8 @@ RegisterNetEvent('ox_inventory:forceOpenInventory', function(left, right)
 		action = 'setupInventory',
 		data = {
 			leftInventory = left,
-			rightInventory = currentInventory
+			rightInventory = currentInventory,
+			backpackInventory = backpackInventory
 		}
 	})
 end)
@@ -886,6 +935,8 @@ function client.closeInventory(server)
 		SetNuiFocus(false, false)
 		SetNuiFocusKeepInput(false)
 		Utils.blurOut()
+
+		Utils.previewPedOut()
 		closeTrunk()
 		SendNUIMessage({ action = 'closeInventory' })
 		SetInterval(client.interval, 200)
@@ -942,6 +993,10 @@ local function updateInventory(data, weight)
 			changes[item.slot] = item.count and item or false
 			if not item.count then item.name = nil end
 			PlayerData.inventory[item.slot] = item.name and item or nil
+		elseif v.inventory == 'backpack' and backpackInventory?.items then
+			local item = v.item
+
+			backpackInventory.items[item.slot] = item.count and item or nil
 		end
 	end
 
@@ -1096,7 +1151,10 @@ RegisterNetEvent('ox_inventory:createDrop', function(dropId, data, owner, slot)
 			else
 				SendNUIMessage({
 					action = 'setupInventory',
-					data = { rightInventory = currentInventory }
+					data = {
+						rightInventory = currentInventory,
+						backpackInventory = backpackInventory
+					}
 				})
 			end
 		end
@@ -1185,7 +1243,9 @@ lib.onCache('vehicle', function()
 	end
 end)
 
-RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inventory, weight, player)
+---@param playerTheme { name: string, colors: table }? the character's saved theme, resolved and
+---@param playerPrefs table? the character's saved interface preference *overrides*, validated
+RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inventory, weight, player, playerTheme, playerPrefs)
 	if source == '' then return end
 
     ---@class PlayerData
@@ -1208,6 +1268,7 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 	if setStateBagHandler then setStateBagHandler(('player:%s'):format(cache.serverId)) end
 
 	local ItemData = table.create(0, #Items)
+	local defaultRarity = shared.ui.rarity.default
 
 	for _, v in pairs(Items --[[@as table<string, OxClientItem>]]) do
 		local buttons = v.buttons and {} or nil
@@ -1218,6 +1279,10 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 			end
 		end
 
+		local grid = v.grid
+
+		if grid and grid[1] == 1 and grid[2] == 1 then grid = nil end
+
 		ItemData[v.name] = {
 			label = v.label,
 			stack = v.stack,
@@ -1226,7 +1291,10 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 			description = v.description,
 			buttons = buttons,
 			ammoName = v.ammoname,
-			image = v.client?.image
+			image = v.client?.image,
+			rarity = v.rarity ~= defaultRarity and v.rarity or nil,
+			grid = grid,
+			clothing = v.clothing,
 		}
 	end
 
@@ -1321,6 +1389,42 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 
 	while not client.uiLoaded do Wait(50) end
 
+	local ui = shared.ui
+	local clothingSlots = {}
+	local defaultTheme = {
+		name = ui.theme,
+		colors = ui.themes[ui.theme],
+	}
+	-- The server resolves the character's saved theme into the same `{ name, colors }` shape the
+	-- default uses, so nothing downstream has to care whether one was stored.
+	local theme = type(playerTheme) == 'table' and type(playerTheme.colors) == 'table' and playerTheme or defaultTheme
+	-- Anchors and marker treatments only; the injuries themselves arrive by event. Left nil while
+	-- the feature is off, which omits the key from the payload entirely.
+	local injuries
+
+	if ui.injuries?.enabled then
+		-- `enabled` rides along even though the key's mere presence already means "on":
+		-- `readInjuryConfig` in web/src/store/injuries.ts requires it to be strictly `true`.
+		injuries = {
+			enabled = true,
+			parts = ui.injuries.parts,
+			types = ui.injuries.types,
+		}
+	end
+
+	if ui.clothing.enabled then
+		for i = 1, #ui.clothing.slots do
+			local slot = ui.clothing.slots[i]
+
+			clothingSlots[i] = {
+				index = shared.playerslots + i,
+				name = slot.name,
+				label = slot.label,
+				side = slot.side,
+			}
+		end
+	end
+
 	SendNUIMessage({
 		action = 'init',
 		data = {
@@ -1328,15 +1432,47 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 			items = ItemData,
 			leftInventory = {
 				id = cache.playerId,
-				slots = shared.playerslots,
+				slots = shared.totalplayerslots,
 				items = PlayerData.inventory,
 				maxWeight = shared.playerweight,
 			},
-			imagepath = client.imagepath
+			-- Omitted entirely when no bag is worn; the server pushed this before the event that
+			-- got us here.
+			backpackInventory = backpackInventory,
+			imagepath = client.imagepath,
+			uiConfig = {
+				layout = ui.layout,
+				grid = {
+					columns = ui.grid.columns,
+					allowRotate = ui.grid.allowRotate,
+				},
+				clothing = {
+					enabled = ui.clothing.enabled,
+					slots = clothingSlots,
+				},
+				rarity = {
+					enabled = ui.rarity.enabled,
+					default = ui.rarity.default,
+					tiers = ui.rarity.tiers,
+				},
+				injuries = injuries,
+				theme = theme,
+				defaultTheme = defaultTheme,
+				prefs = type(playerPrefs) == 'table' and next(playerPrefs) and playerPrefs or nil,
+			},
 		}
 	})
 
 	PlayerData.loaded = true
+
+	-- Anything the server pushed while the UI was still booting. Ordered after `init` on purpose:
+	-- the message carries state, and `init` rebuilds the store it lands in.
+	if currentInjuries then
+		SendNUIMessage({
+			action = 'setInjuries',
+			data = { injuries = currentInjuries }
+		})
+	end
 
 	if not client.disablesetupnotification then
 		lib.notify({ description = locale('inventory_setup') })
@@ -1588,6 +1724,10 @@ RegisterNetEvent('ox_inventory:viewInventory', function(left, right)
 
 	if client.screenblur then Utils.blurIn() end
 
+
+
+	Utils.previewPedIn()
+
 	currentInventory = right or defaultInventory
 	currentInventory.ignoreSecurityChecks = true
     currentInventory.type = 'inspect'
@@ -1598,7 +1738,8 @@ RegisterNetEvent('ox_inventory:viewInventory', function(left, right)
 		action = 'setupInventory',
 		data = {
 			leftInventory = left,
-			rightInventory = currentInventory
+			rightInventory = currentInventory,
+			backpackInventory = backpackInventory
 		}
 	})
 end)
@@ -1610,6 +1751,27 @@ end)
 
 RegisterNUICallback('getItemData', function(itemName, cb)
 	cb(Items[itemName])
+end)
+
+---Persists the character's chosen theme. Cosmetic only, and the server re-validates every
+---colour string before it touches the database - nothing is trusted from here.
+RegisterNUICallback('saveTheme', function(data, cb)
+	if type(data) ~= 'table' or type(data.name) ~= 'string' then return cb(false) end
+
+	local success = lib.callback.await('ox_inventory:saveTheme', false, {
+		name = data.name,
+		colors = type(data.colors) == 'table' and data.colors or nil,
+	})
+
+	cb(success == true)
+end)
+
+RegisterNUICallback('savePrefs', function(data, cb)
+	if type(data) ~= 'table' or type(data.prefs) ~= 'table' then return cb(false) end
+
+	local ok, success = pcall(lib.callback.await, 'ox_inventory:savePrefs', false, { prefs = data.prefs })
+
+	cb(ok and success == true)
 end)
 
 RegisterNUICallback('removeComponent', function(data, cb)

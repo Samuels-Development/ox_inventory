@@ -1,0 +1,345 @@
+
+@use './tokens';
+
+.ped-focus {
+  --ox-centre-reserve: calc(2 * 4.1667vh + var(--ox-ped-gap));
+}
+
+.ped-focus .inventory-centre {
+  flex: 0 0 auto;
+}
+
+.clothes {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+}
+
+.clothes-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7407vh;
+
+  &.left {
+    align-items: flex-end;
+  }
+
+  &.right {
+    align-items: flex-start;
+  }
+}
+
+.ped-gap {
+  position: relative;
+  flex: 0 0 auto;
+  width: var(--ox-ped-gap);
+  height: var(--ox-ped-h);
+  align-self: center;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -8vh -1vh;
+    background: radial-gradient(ellipse 58% 46% at 50% 62%, var(--ox-photo-shadow) 0%, transparent 72%);
+    opacity: var(--ox-tint-photo);
+    pointer-events: none;
+  }
+}
+
+.cloth {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.1667vh;
+  height: 4.1667vh;
+  border-radius: 0.463vh;
+  background-color: rgba(133, 133, 133, 0.25);
+  border: 0.0926vh solid var(--slot-rarity, rgba(255, 255, 255, 0.3));
+  opacity: 0.5;
+  image-rendering: -webkit-optimize-contrast;
+  transition: opacity 0.25s, border-color 0.25s, background-color 0.25s, box-shadow 0.25s;
+
+  &:hover {
+    cursor: pointer;
+    opacity: 1;
+    box-shadow: 0 0 0.9vh var(--ox-photo-shadow);
+  }
+
+  &.cloth-drop-valid {
+    opacity: 1;
+    border-color: rgba(74, 222, 128, 0.5);
+    background-color: rgba(74, 222, 128, 0.12);
+  }
+
+  &.cloth-drop-invalid {
+    opacity: 1;
+    border-style: dashed;
+    border-color: rgba(248, 113, 113, 0.55);
+    background-color: rgba(248, 113, 113, 0.12);
+    cursor: not-allowed;
+  }
+}
+
+.cloth-icon {
+  width: 2.2222vh;
+  height: 2.2222vh;
+  color: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+}
+
+.cloth-image {
+  width: 3.3333vh;
+  height: 3.3333vh;
+  object-fit: contain;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+.cloth-label {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.185vh 0.5556vh;
+  border-radius: 0.463vh;
+  background-color: #00000060;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.9259vh;
+  font-weight: 500;
+  letter-spacing: 0.04vh;
+  line-height: 1.4vh;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.clothes-col.left .cloth-label {
+  right: 100%;
+  margin-right: 0.7407vh;
+}
+
+.clothes-col.right .cloth-label {
+  left: 100%;
+  margin-left: 0.7407vh;
+}
+
+.cloth-empty:hover .cloth-label {
+  opacity: 1;
+}
+
+.ped-gap-silhouette {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.body-figure {
+  position: relative;
+  width: 100%;
+  height: 90%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+
+  --ox-figure-h: calc(var(--ox-ped-h) * 0.9);
+  --ox-figure-w: calc(var(--ox-figure-h) * 900 / 1700);
+}
+
+.body-figure-art {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: var(--ox-figure-opacity, 0.26);
+  transition: opacity var(--ox-t-fast), filter var(--ox-t-fast);
+  user-select: none;
+  pointer-events: none;
+}
+
+.clothes:hover .body-figure-art {
+  opacity: calc(var(--ox-figure-opacity, 0.26) + 0.08);
+}
+
+.body-figure-glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 62% 46% at 50% 50%, rgba(255, 255, 255, 0.42) 0%, transparent 70%),
+    var(--ox-main);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  animation: bodyGlowIn 260ms cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+.body-figure-glow-out {
+  animation: bodyGlowOut 190ms ease-out both;
+}
+
+@keyframes bodyGlowIn {
+  from {
+    opacity: 0;
+    transform: translateY(#{tokens.ui(0.8)}) scale(0.985);
+  }
+
+  to {
+    opacity: 0.88;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bodyGlowOut {
+  from {
+    opacity: 0.88;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+.clothes-slot-wrap {
+  display: contents;
+}
+
+.injury-markers {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--ox-figure-w);
+  height: 100%;
+  transform: translateX(-50%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.injury-marker {
+  position: absolute;
+  width: 1.5vh;
+  height: 1.5vh;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: help;
+}
+
+.injury-marker-dot {
+  position: absolute;
+  inset: 0.35vh;
+  border-radius: 50%;
+  background-color: var(--injury-color, #ef4444);
+  box-shadow: 0 0 0.55vh var(--injury-color, #ef4444), 0 0 0 0.0926vh rgba(0, 0, 0, 0.55);
+  transition: box-shadow 0.2s;
+}
+
+.injury-marker-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 0.0926vh solid var(--injury-color, #ef4444);
+  opacity: 0.45;
+  transition: opacity 0.2s;
+}
+
+.injury-marker:hover {
+  .injury-marker-dot {
+    box-shadow: 0 0 0.9vh var(--injury-color, #ef4444), 0 0 0 0.0926vh rgba(0, 0, 0, 0.55);
+  }
+
+  .injury-marker-ring {
+    opacity: 0.85;
+  }
+}
+
+.injury-marker-pulse .injury-marker-ring {
+  animation: injuryPulse 2.6s ease-in-out infinite;
+}
+
+@keyframes injuryPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+
+  50% {
+    transform: scale(1.6);
+    opacity: 0.05;
+  }
+}
+
+.injury-marker-count {
+  position: absolute;
+  top: -0.5vh;
+  left: 0.8vh;
+  box-sizing: border-box;
+  min-width: 1.15vh;
+  height: 1.15vh;
+  padding: 0 0.15vh;
+  border: 0.0463vh solid var(--injury-color, #ef4444);
+  border-radius: 4.6296vh;
+  background-color: rgba(0, 0, 0, 0.65);
+  color: rgba(255, 255, 255, 0.85);
+  font-family: var(--ox-font);
+  font-size: 0.7407vh;
+  font-weight: 600;
+  line-height: 1.05vh;
+  text-align: center;
+  pointer-events: none;
+}
+
+.injury-tag {
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+  max-width: 13vh;
+  margin-left: 0.9vh;
+  padding: 0.2593vh 0.5556vh;
+  border-left: 0.1852vh solid var(--injury-color, #ef4444);
+  border-radius: 0.463vh;
+  background-color: #00000060;
+  font-family: var(--ox-font);
+  font-size: 0.9259vh;
+  font-weight: 500;
+  letter-spacing: 0.04vh;
+  line-height: 1.4vh;
+  text-transform: uppercase;
+  transform: translateY(-50%);
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.injury-tag-flip {
+  left: auto;
+  right: 100%;
+  align-items: flex-end;
+  margin-left: 0;
+  margin-right: 0.9vh;
+  border-left: 0;
+  border-right: 0.1852vh solid var(--injury-color, #ef4444);
+  text-align: right;
+}
+
+.injury-tag-part {
+  color: var(--ox-text-1);
+  white-space: nowrap;
+}
+
+.injury-tag-list {
+  color: var(--ox-text-2);
+}
+
+.injury-marker:hover .injury-tag {
+  opacity: 1;
+}

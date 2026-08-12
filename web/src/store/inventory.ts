@@ -7,23 +7,12 @@ import {
   stackSlotsReducer,
   swapSlotsReducer,
 } from '../reducers';
-import { State } from '../typings';
+import { createEmptyInventory, State } from '../typings';
 
 const initialState: State = {
-  leftInventory: {
-    id: '',
-    type: '',
-    slots: 0,
-    maxWeight: 0,
-    items: [],
-  },
-  rightInventory: {
-    id: '',
-    type: '',
-    slots: 0,
-    maxWeight: 0,
-    items: [],
-  },
+  leftInventory: createEmptyInventory(),
+  rightInventory: createEmptyInventory(),
+  backpackInventory: createEmptyInventory(),
   additionalMetadata: new Array(),
   itemAmount: 0,
   shiftPressed: false,
@@ -70,15 +59,22 @@ export const inventorySlice = createSlice({
       state.history = {
         leftInventory: current(state.leftInventory),
         rightInventory: current(state.rightInventory),
+        backpackInventory: current(state.backpackInventory),
       };
     });
     builder.addMatcher(isFulfilled, (state) => {
       state.isBusy = false;
     });
     builder.addMatcher(isRejected, (state) => {
-      if (state.history && state.history.leftInventory && state.history.rightInventory) {
+      if (
+        state.history &&
+        state.history.leftInventory &&
+        state.history.rightInventory &&
+        state.history.backpackInventory
+      ) {
         state.leftInventory = state.history.leftInventory;
         state.rightInventory = state.history.rightInventory;
+        state.backpackInventory = state.history.backpackInventory;
       }
       state.isBusy = false;
     });
@@ -98,6 +94,8 @@ export const {
 } = inventorySlice.actions;
 export const selectLeftInventory = (state: RootState) => state.inventory.leftInventory;
 export const selectRightInventory = (state: RootState) => state.inventory.rightInventory;
+export const selectBackpackInventory = (state: RootState) => state.inventory.backpackInventory;
+export const hasBackpack = (state: RootState) => state.inventory.backpackInventory.id !== '';
 export const selectItemAmount = (state: RootState) => state.inventory.itemAmount;
 export const selectIsBusy = (state: RootState) => state.inventory.isBusy;
 

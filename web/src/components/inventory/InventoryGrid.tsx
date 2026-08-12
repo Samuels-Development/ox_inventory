@@ -1,96 +1,79 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Inventory } from '../../typings';
+import { Inventory, InventoryType, Slot } from '../../typings';
 import InventorySlot from './InventorySlot';
-import { getTotalWeight } from '../../helpers';
+import CircularWeight from '../utils/CircularWeight';
+import { getFavourites, getPinFavourites, getTotalWeight, sortSlots } from '../../helpers';
+import { getNumberPref } from '../../store/preferences';
 import { useAppSelector } from '../../store';
 import { useIntersection } from '../../hooks/useIntersection';
 import { Items } from '../../store/items';
 import { Locale } from '../../store/locale';
 import { fetchNui } from '../../utils/fetchNui';
+import InventoryFilters, {
+  FilterId,
+  InventorySort,
+  matchesFilter,
+  usePanelSortMode,
+  usePrefsRevision,
+} from './InventoryFilters';
+import { BagIcon, CloseIcon, GridIcon, SearchIcon } from '../utils/icons';
 
 const PAGE_SIZE = 30;
 
-// Search icon component
-const SearchIcon: React.FC = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="11" cy="11" r="8" />
-    <path d="m21 21-4.3-4.3" />
-  </svg>
-);
+const EMPTY_FAVOURITES: readonly string[] = [];
 
-// X icon component for clear button
-const XIcon: React.FC = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M18 6 6 18" />
-    <path d="m6 6 12 12" />
-  </svg>
-);
-
-// Weight/Scale icon component
-const WeightIcon: React.FC = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    style={{ width: 'calc((0.729vw + 1.296vh) / 2)', height: 'calc((0.729vw + 1.296vh) / 2)' }}
-    viewBox="0 0 20 20"
-    fill="currentColor"
-  >
-    <path
-      fillRule="evenodd"
-      d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616 1.738 5.42a1 1 0 01-.285 1.05A3.989 3.989 0 0115 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.715-5.349L11 6.477V16h2a1 1 0 110 2H7a1 1 0 110-2h2V6.477L6.237 7.582l1.715 5.349a1 1 0 01-.285 1.05A3.989 3.989 0 015 15a3.989 3.989 0 01-2.667-1.019 1 1 0 01-.285-1.05l1.738-5.42-1.233-.617a1 1 0 01.894-1.788l1.599.799L9 4.323V3a1 1 0 011-1z"
-      clipRule="evenodd"
-    />
-  </svg>
-);
-
-// Format weight helper
 const formatWeight = (weight: number): string => {
-  if (weight >= 1000) {
-    return `${(weight / 1000).toFixed(1)}kg`;
-  }
+  if (weight >= 1000) return `${(weight / 1000).toFixed(1)}kg`;
+
   return `${Math.round(weight)}g`;
 };
 
-// Get weight display color class based on capacity percentage
 const getWeightColorClass = (percent: number): string => {
   if (percent >= 100) return 'weight-critical';
   if (percent >= 80) return 'weight-warning';
+
   return '';
 };
 
-const InventoryGrid: React.FC<{ inventory: Inventory }> = ({ inventory }) => {
+interface InventoryGridProps {
+  inventory: Inventory;
+  slots?: Slot[];
+  combinedWeight?: number;
+  showFilters?: boolean;
+}
+
+const InventoryGrid: React.FC<InventoryGridProps> = ({ inventory, slots, combinedWeight, showFilters }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const weight = useMemo(
-    () => (inventory.maxWeight !== undefined ? Math.floor(getTotalWeight(inventory.items) * 1000) / 1000 : 0),
-    [inventory.maxWeight, inventory.items]
-  );
-  const weightPercent = useMemo(
-    () => (inventory.maxWeight ? (weight / inventory.maxWeight) * 100 : 0),
-    [weight, inventory.maxWeight]
-  );
+  const [activeFilter, setActiveFilter] = useState<FilterId | null>(null);
   const [page, setPage] = useState(0);
   const containerRef = useRef(null);
   const { ref, entry } = useIntersection({ threshold: 0.5 });
   const isBusy = useAppSelector((state) => state.inventory.isBusy);
+
+  const prefsRevision = usePrefsRevision();
+
+  const isPlayer = inventory.type === 'player';
+  const renderedSlots = slots || inventory.items;
+  const [sortMode, setSortMode] = usePanelSortMode();
+  const favourites = getFavourites();
+
+  const sortedSlots = useMemo(
+    () => sortSlots(renderedSlots, sortMode, getPinFavourites() ? favourites : EMPTY_FAVOURITES),
+    [renderedSlots, sortMode, favourites, prefsRevision]
+  );
+
+  const pageSize = Math.max(1, getNumberPref('pageSize') || PAGE_SIZE);
+
+  const weight = useMemo(() => {
+    if (combinedWeight !== undefined) return combinedWeight;
+
+    return inventory.maxWeight !== undefined ? Math.floor(getTotalWeight(inventory.items) * 1000) / 1000 : 0;
+  }, [inventory.maxWeight, inventory.items, combinedWeight]);
+
+  const weightPercent = useMemo(
+    () => (inventory.maxWeight ? (weight / inventory.maxWeight) * 100 : 0),
+    [weight, inventory.maxWeight]
+  );
 
   useEffect(() => {
     if (entry && entry.isIntersecting) {
@@ -98,87 +81,83 @@ const InventoryGrid: React.FC<{ inventory: Inventory }> = ({ inventory }) => {
     }
   }, [entry]);
 
-  // Filter items based on search term
   const filteredItems = useMemo(() => {
-    if (!searchTerm) return inventory.items;
+    if (!searchTerm && !activeFilter) return sortedSlots;
 
     const lowerSearch = searchTerm.toLowerCase();
 
-    return inventory.items.map((item) => {
-      if (!item.name) return item; // Empty slot, keep as is
+    return sortedSlots.map((item) => {
+      if (!item.name) return item;
 
-      // Get label from metadata, Items store, or fallback to name
       const itemLabel = item.metadata?.label || Items[item.name]?.label || item.name;
 
       const matchesSearch =
+        !lowerSearch ||
         item.name.toLowerCase().includes(lowerSearch) ||
         itemLabel.toLowerCase().includes(lowerSearch);
 
-      // If doesn't match, return empty slot placeholder
-      if (!matchesSearch) {
-        return { ...item, name: undefined, count: undefined, metadata: undefined };
-      }
+      if (matchesSearch && (!activeFilter || matchesFilter(item.name, activeFilter))) return item;
 
-      return item;
+      return { ...item, name: undefined, count: undefined, metadata: undefined };
     });
-  }, [inventory.items, searchTerm]);
+  }, [sortedSlots, searchTerm, activeFilter]);
 
-  // Count actual items (non-empty slots)
-  const itemCount = useMemo(
-    () => inventory.items.filter((item) => item.name).length,
-    [inventory.items]
-  );
+  const itemCount = useMemo(() => inventory.items.filter((item) => item.name).length, [inventory.items]);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
+  const fallbackTitle = isPlayer
+    ? Locale.ui_inventory || 'Inventory'
+    : inventory.type === InventoryType.BACKPACK
+    ? Locale.ui_backpack || 'Backpack'
+    : Locale.ui_other_inventory || 'Other Inventory';
 
   return (
-    <div className="inventory-grid-wrapper" style={{ pointerEvents: isBusy ? 'none' : 'auto' }}>
-      {/* Header */}
-      <div className="inventory-grid-header-wrapper">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'calc((0.417vw + 0.741vh) / 2)' }}>
-          <p>{inventory.label || 'Secondary Inventory'}</p>
-          <span style={{ fontSize: 'calc((0.625vw + 1.111vh) / 2)', color: 'rgba(107, 114, 128, 1)' }}>
-            {itemCount} items
-          </span>
+    <div className="inventory-panel" style={{ pointerEvents: isBusy ? 'none' : 'auto' }}>
+      <div className="inventory-panel-header">
+        <div className="panel-icon">{isPlayer ? <GridIcon /> : <BagIcon />}</div>
+        <div className="panel-title">{inventory.label || fallbackTitle}</div>
+        <div className="panel-description">
+          {itemCount} {Locale.ui_items || 'items'}
         </div>
         {inventory.maxWeight !== undefined && inventory.maxWeight > 0 && (
-          <div className={`inventory-weight-display ${getWeightColorClass(weightPercent)}`}>
-            <WeightIcon />
-            <span>{formatWeight(weight)}/{formatWeight(inventory.maxWeight)}</span>
+          <div className={`panel-weight ${getWeightColorClass(weightPercent)}`}>
+            <div className="panel-weight-text">
+              <div className="panel-weight-label">{Locale.ui_weight || 'Weight'}</div>
+              <div className="panel-weight-value">
+                {formatWeight(weight)} / {formatWeight(inventory.maxWeight)}
+              </div>
+            </div>
+            <CircularWeight percent={weightPercent} />
           </div>
         )}
       </div>
 
-      {/* Search Bar */}
       <div className="inventory-search-wrapper">
         <div className="inventory-search-container">
           <input
             type="text"
             placeholder={Locale.ui_search_items || 'Search items...'}
             value={searchTerm}
-            onChange={handleSearchChange}
-            onClick={(e) => {
-              e.stopPropagation();
-              (e.target as HTMLInputElement).focus();
+            onChange={(event) => setSearchTerm(event.target.value)}
+            onClick={(event) => {
+              event.stopPropagation();
+              (event.target as HTMLInputElement).focus();
             }}
-            onMouseDown={(e) => e.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
             onFocus={() => fetchNui('lockControls', true)}
             onBlur={() => fetchNui('lockControls', false)}
             className="inventory-search-input"
           />
           {searchTerm ? (
             <button
-              onClick={(e) => {
-                e.stopPropagation();
+              onClick={(event) => {
+                event.stopPropagation();
                 setSearchTerm('');
               }}
-              onMouseDown={(e) => e.stopPropagation()}
+              onMouseDown={(event) => event.stopPropagation()}
               className="inventory-search-clear"
               type="button"
             >
-              <XIcon />
+              <CloseIcon />
             </button>
           ) : (
             <span className="inventory-search-icon">
@@ -188,18 +167,37 @@ const InventoryGrid: React.FC<{ inventory: Inventory }> = ({ inventory }) => {
         </div>
       </div>
 
-      {/* Grid Container */}
-      <div className="inventory-grid-container" ref={containerRef}>
-        {filteredItems.slice(0, (page + 1) * PAGE_SIZE).map((item, index) => (
-          <InventorySlot
-            key={`${inventory.type}-${inventory.id}-${item.slot}`}
-            item={item}
-            ref={index === (page + 1) * PAGE_SIZE - 1 ? ref : null}
-            inventoryType={inventory.type}
-            inventoryGroups={inventory.groups}
-            inventoryId={inventory.id}
-          />
-        ))}
+      <InventoryFilters
+        active={activeFilter}
+        onChange={setActiveFilter}
+        showChips={showFilters}
+        sort={<InventorySort value={sortMode} onChange={setSortMode} />}
+      />
+
+      <div className="inventory-grid-wrapper">
+        <div className="inventory-grid-container" ref={containerRef}>
+          {filteredItems.slice(0, (page + 1) * pageSize).map((item, index) => {
+            const key = `${inventory.type}-${inventory.id}-${item.slot}`;
+            const slot = (
+              <InventorySlot
+                key={key}
+                item={item}
+                ref={index === (page + 1) * pageSize - 1 ? ref : null}
+                inventoryType={inventory.type}
+                inventoryGroups={inventory.groups}
+                inventoryId={inventory.id}
+              />
+            );
+
+            if (!item.name || favourites.indexOf(item.name) === -1) return slot;
+
+            return (
+              <div key={key} className="inventory-slot-favourite">
+                {slot}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

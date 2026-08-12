@@ -13,6 +13,144 @@ local function setImagePath(path)
     end
 end
 
+local uiConfig = shared.ui
+local uiGrid = uiConfig and uiConfig.grid
+local uiRarity = uiConfig and uiConfig.rarity
+local rarityTiers = uiRarity and uiRarity.tiers or {}
+local defaultRarity = uiRarity and uiRarity.default or 'common'
+local gridDefaults = uiGrid and uiGrid.defaults or {}
+local defaultGridSize = uiGrid and uiGrid.defaultSize or { 1, 1 }
+local maxGridWidth = uiGrid and uiGrid.columns or 10
+local maxGridHeight = 6
+local clothingCategories = {}
+
+if uiConfig and uiConfig.clothing and type(uiConfig.clothing.slots) == 'table' then
+    for i = 1, #uiConfig.clothing.slots do
+        clothingCategories[uiConfig.clothing.slots[i].name] = true
+    end
+end
+
+local checkRarity = next(rarityTiers) ~= nil
+local checkClothing = next(clothingCategories) ~= nil
+local badRarity, badRarityCount = {}, 0
+local badGrid, badGridCount = {}, 0
+local badClothing, badClothingCount = {}, 0
+
+---Records a bad value once, returning 1 the first time it is seen and 0 afterwards.
+---@param set table<string, true>
+---@param value any
+---@return number
+local function flagOnce(set, value)
+    local key = tostring(value)
+
+    if set[key] then return 0 end
+
+    set[key] = true
+
+    return 1
+end
+
+---@param value any
+---@param max number
+---@return number?
+local function gridAxis(value, max)
+    value = tonumber(value)
+
+    if not value then return end
+
+    value = math.floor(value)
+
+    if value < 1 then return end
+
+    return value > max and max or value
+end
+
+---@param data OxItem
+---@param class? string key of `shared.ui.grid.defaults` used when the item has no explicit size
+local function normaliseItem(data, class)
+    local rarity = data.rarity
+
+    if rarity == nil then
+        data.rarity = defaultRarity
+    elseif checkRarity and not (type(rarity) == 'string' and rarityTiers[rarity]) then
+        badRarityCount += flagOnce(badRarity, rarity)
+        data.rarity = defaultRarity
+    end
+
+    local grid = data.grid
+    local width, height
+
+    if grid ~= nil then
+        if type(grid) == 'table' then
+            width = gridAxis(grid[1] or grid.width or grid.w, maxGridWidth)
+            height = gridAxis(grid[2] or grid.height or grid.h, maxGridHeight)
+        end
+
+        if not width or not height then
+            badGridCount += flagOnce(badGrid, data.name)
+        end
+    end
+
+    if not width or not height then
+        local fallback = class and gridDefaults[class] or defaultGridSize
+
+        if type(fallback) ~= 'table' then fallback = defaultGridSize end
+
+        width = width or gridAxis(fallback[1], maxGridWidth) or 1
+        height = height or gridAxis(fallback[2], maxGridHeight) or 1
+    end
+
+    data.grid = { width, height }
+
+    local clothing = data.clothing
+
+    if clothing == nil or not checkClothing then return end
+
+    if type(clothing) == 'string' then
+        if not clothingCategories[clothing] then
+            badClothingCount += flagOnce(badClothing, clothing)
+            data.clothing = nil
+        end
+
+        return
+    end
+
+    if type(clothing) ~= 'table' then
+        badClothingCount += flagOnce(badClothing, clothing)
+        data.clothing = nil
+
+        return
+    end
+
+    local categories = {}
+
+    for i = 1, #clothing do
+        local category = clothing[i]
+
+        if type(category) == 'string' and clothingCategories[category] then
+            categories[#categories + 1] = category
+        else
+            badClothingCount += flagOnce(badClothing, category)
+        end
+    end
+
+    data.clothing = categories[1] and categories or nil
+end
+
+---@param set table<string, true>
+---@return string
+local function listKeys(set)
+    local keys = {}
+
+    for key in pairs(set) do
+        keys[#keys + 1] = key
+    end
+
+    table.sort(keys)
+
+    return table.concat(keys, ', ')
+end
+
 ---@param data OxItem
 local function newItem(data)
 	data.weight = data.weight or 0
@@ -24,6 +162,8 @@ local function newItem(data)
 	if data.stack == nil then
 		data.stack = true
 	end
+
+	normaliseItem(data)
 
 	local clientData, serverData = data.client, data.server
 	---@cast clientData -nil
@@ -90,7 +230,11 @@ for type, data in pairs(lib.load('data.weapons') or {}) do
 			v.stack = true
 		end
 
-		v[type == 'Ammo' and 'ammo' or type == 'Components' and 'component' or type == 'Tints' and 'tint' or 'weapon'] = true
+		local class = type == 'Ammo' and 'ammo' or type == 'Components' and 'component' or type == 'Tints' and 'tint' or 'weapon'
+
+		v[class] = true
+
+		normaliseItem(v, class)
 
 		if isServer then v.client = nil else
 			v.count = 0
@@ -116,5 +260,17 @@ for k, v in pairs(lib.load('data.items') or {}) do
 end
 
 ItemList.cash = ItemList.money
+
+if badRarityCount > 0 then
+    warn(('%s unknown item rarity value(s) replaced with "%s": %s'):format(badRarityCount, defaultRarity, listKeys(badRarity)))
+end
+
+if badGridCount > 0 then
+    warn(('%s item(s) have an invalid "grid" size and fell back to the class default: %s'):format(badGridCount, listKeys(badGrid)))
+end
+
+if badClothingCount > 0 then
+    warn(('%s unknown "clothing" categor(y/ies) ignored: %s'):format(badClothingCount, listKeys(badClothing)))
+end
 
 return ItemList

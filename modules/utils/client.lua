@@ -239,5 +239,114 @@ function Utils.blurOut()
     TriggerScreenblurFadeOut(250)
 end
 
+---@return string
+local function previewMode()
+    local preview = shared.ui and shared.ui.pedPreview
+
+    if type(preview) ~= 'table' then return 'silhouette' end
+
+    return preview.mode or 'clone'
+end
+
+local previewPed
+local previewActive = false
+
+local function destroyPreviewPed()
+    if previewPed then
+        if DoesEntityExist(previewPed) then
+            SetEntityAsMissionEntity(previewPed, false, true)
+            DeleteEntity(previewPed)
+        end
+
+        previewPed = nil
+    end
+end
+
+---Places the clone relative to the *gameplay* camera, so it holds its spot on screen no matter
+---where the player was looking when they opened the inventory.
+local function placePreviewPed(cfg)
+    local camCoords = GetGameplayCamCoord()
+    local camRot = GetGameplayCamRot(2)
+    local yaw = math.rad(camRot.z)
+    local pitch = math.rad(camRot.x)
+
+    -- Camera basis. Forward is flattened by cos(pitch) so looking up or down slides the preview
+    -- with the view instead of driving it into the ground or the sky.
+    local forwardX, forwardY = -math.sin(yaw) * math.cos(pitch), math.cos(yaw) * math.cos(pitch)
+    local rightX, rightY = math.cos(yaw), math.sin(yaw)
+
+    local distance = cfg.distance or 2.4
+    local side = cfg.side or 0.0
+
+    local x = camCoords.x + forwardX * distance + rightX * side
+    local y = camCoords.y + forwardY * distance + rightY * side
+    local z = camCoords.z + (cfg.height or -0.9) + math.sin(pitch) * distance
+
+    SetEntityCoordsNoOffset(previewPed, x, y, z, false, false, false)
+    -- Face the camera, plus whatever turn the config asks for.
+    SetEntityHeading(previewPed, camRot.z + 180.0 + (cfg.turn or 0.0))
+
+    if cfg.light ~= false then
+        DrawLightWithRange(
+            camCoords.x + forwardX * (distance * 0.45) + rightX * side,
+            camCoords.y + forwardY * (distance * 0.45) + rightY * side,
+            z + 1.0,
+            255, 255, 255,
+            cfg.lightRange or 3.0,
+            cfg.lightIntensity or 2.0
+        )
+    end
+end
+
+function Utils.previewPedIn()
+    if previewActive or previewMode() ~= 'clone' then return end
+
+    local ped = PlayerPedId()
+
+    if not DoesEntityExist(ped) or IsPedInAnyVehicle(ped, false) then return end
+
+    local cfg = shared.ui.pedPreview
+
+    -- `isNetwork = false` keeps the clone off the wire entirely; `copyHeadBlend = true` brings
+    -- the character's face across, and the clone inherits their current outfit and props.
+    previewPed = ClonePed(ped, false, false, true)
+
+    if not previewPed or previewPed == 0 then return end
+
+    SetEntityAsMissionEntity(previewPed, true, true)
+    SetEntityCollision(previewPed, false, false)
+    SetEntityInvincible(previewPed, true)
+    SetBlockingOfNonTemporaryEvents(previewPed, true)
+    SetPedCanRagdoll(previewPed, false)
+    SetPedCanBeTargetted(previewPed, false)
+    SetEntityCanBeDamaged(previewPed, false)
+    FreezeEntityPosition(previewPed, true)
+    SetPedDefaultComponentVariation(previewPed) -- no-op when the clone already carries components
+    ClonePedToTarget(ped, previewPed)           -- refresh drawables/props after the freeze
+
+    previewActive = true
+
+    CreateThread(function()
+        while previewActive and previewPed and DoesEntityExist(previewPed) do
+            placePreviewPed(shared.ui.pedPreview or cfg)
+            -- Per-frame and local-only: the real ped stays fully networked, other players are
+            -- unaffected, and the flag lapses on its own the moment this loop stops.
+            SetEntityLocallyInvisible(ped)
+            Wait(0)
+        end
+    end)
+end
+
+function Utils.previewPedOut()
+    if not previewActive then return end
+
+    previewActive = false
+    destroyPreviewPed()
+end
+
+-- A resource restart with the inventory open would otherwise strand the clone in the world.
+AddEventHandler('onResourceStop', function(resource)
+    if resource == shared.resource then destroyPreviewPed() end
+end)
 
 return Utils

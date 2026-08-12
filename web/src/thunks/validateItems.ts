@@ -11,6 +11,7 @@ export const validateMove = createAsyncThunk(
       toSlot: number;
       toType: string;
       count: number;
+      rotated?: boolean;
     },
     { rejectWithValue, dispatch }
   ) => {
