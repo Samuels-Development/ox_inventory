@@ -86,6 +86,7 @@ local defaultInventory = {
 }
 
 local currentInventory = defaultInventory
+local currentContainer
 
 local function closeTrunk()
 	if currentInventory?.type == 'trunk' then
@@ -144,6 +145,23 @@ function client.openInventory(inv, data)
 		if IsNuiFocused() then
 			if inv == 'container' and currentInventory.id == PlayerData.inventory[data].metadata.container then
 				return client.closeInventory()
+			end
+
+			if inv == 'container' and currentInventory.type ~= 'container' and currentInventory ~= defaultInventory then
+				if currentContainer and currentContainer.id == PlayerData.inventory[data].metadata.container then
+					currentContainer = nil
+					lib.callback.await('ox_inventory:closeContainer', false)
+					SendNUIMessage({ action = 'setContainer', data = nil })
+					return
+				end
+
+				local payload = lib.callback.await('ox_inventory:openContainer', false, data)
+
+				if not payload then return end
+
+				currentContainer = payload
+				SendNUIMessage({ action = 'setContainer', data = payload })
+				return
 			end
 
 			if currentInventory.type == 'drop' and (not data or currentInventory.id == (type(data) == 'table' and data.id or data)) then
@@ -912,6 +930,7 @@ function client.closeInventory(server)
 
 	if invOpen then
 		invOpen = nil
+		currentContainer = nil
 		SetNuiFocus(false, false)
 		SetNuiFocusKeepInput(false)
 		Utils.blurOut()
@@ -977,6 +996,8 @@ local function updateInventory(data, weight)
 			local item = v.item
 
 			backpackInventory.items[item.slot] = item.count and item or nil
+		elseif currentContainer and v.inventory == currentContainer.id then
+			v.inventory = 'container'
 		end
 	end
 

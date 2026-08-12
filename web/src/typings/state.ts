@@ -5,6 +5,7 @@ export type State = {
   leftInventory: Inventory;
   rightInventory: Inventory;
   backpackInventory: Inventory;
+  containerInventory: Inventory;
   itemAmount: number;
   shiftPressed: boolean;
   isBusy: boolean;
@@ -13,5 +14,6 @@ export type State = {
     leftInventory: Inventory;
     rightInventory: Inventory;
     backpackInventory: Inventory;
+    containerInventory: Inventory;
   };
 };

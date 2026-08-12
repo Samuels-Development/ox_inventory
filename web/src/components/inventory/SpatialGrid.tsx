@@ -5,6 +5,7 @@ import { getGridOccupancy, getTotalWeight, isSlotWithItem } from '../../helpers'
 import { useAppDispatch, useAppSelector } from '../../store';
 import { Items } from '../../store/items';
 import { Locale } from '../../store/locale';
+import { togglePanelCollapsed, usePanelCollapsed } from '../../hooks/usePanelCollapse';
 import { fetchNui } from '../../utils/fetchNui';
 import { closeTooltip } from '../../store/tooltip';
 import { onBuy } from '../../dnd/onBuy';
@@ -212,6 +213,8 @@ const SpatialGrid: React.FC<{ inventory: Inventory; showFilters?: boolean }> = (
     [inventory.items, cells]
   );
 
+  const isCollapsed = usePanelCollapsed(inventory.id);
+
   const fallbackTitle = isPlayer
     ? Locale.ui_inventory || 'Inventory'
     : inventory.type === InventoryType.BACKPACK
@@ -219,8 +222,21 @@ const SpatialGrid: React.FC<{ inventory: Inventory; showFilters?: boolean }> = (
     : Locale.ui_other_inventory || 'Other Inventory';
 
   return (
-    <div className="inventory-grid-wrapper" style={{ pointerEvents: isBusy ? 'none' : 'auto' }}>
+    <div
+      className={`inventory-grid-wrapper${isCollapsed ? ' collapsed' : ''}`}
+      style={{ pointerEvents: isBusy ? 'none' : 'auto' }}
+    >
       <div className="inventory-grid-header-wrapper">
+        {!isPlayer && (
+          <button
+            type="button"
+            className={`panel-collapse${isCollapsed ? ' is-collapsed' : ''}`}
+            aria-label={isCollapsed ? 'Expand' : 'Collapse'}
+            onClick={() => togglePanelCollapsed(inventory.id)}
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+          </button>
+        )}
         <div className="panel-icon">{isPlayer ? <GridIcon /> : <BagIcon />}</div>
         <div className="panel-title">{inventory.label || fallbackTitle}</div>
         <div className="panel-description">

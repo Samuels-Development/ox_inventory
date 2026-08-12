@@ -25,9 +25,10 @@ export const setupInventoryReducer: CaseReducer<
     leftInventory?: Inventory;
     rightInventory?: Inventory;
     backpackInventory?: Inventory;
+    containerInventory?: Inventory;
   }>
 > = (state, action) => {
-  const { leftInventory, rightInventory, backpackInventory } = action.payload;
+  const { leftInventory, rightInventory, backpackInventory, containerInventory } = action.payload;
   const curTime = Math.floor(Date.now() / 1000);
 
   if (leftInventory)
@@ -49,6 +50,15 @@ export const setupInventoryReducer: CaseReducer<
     };
   } else if (state.backpackInventory.id !== '') {
     state.backpackInventory = createEmptyInventory();
+  }
+
+  if (containerInventory) {
+    state.containerInventory = {
+      ...containerInventory,
+      items: densifyItems(containerInventory, curTime),
+    };
+  } else if (state.containerInventory.id !== '') {
+    state.containerInventory = createEmptyInventory();
   }
 
   state.shiftPressed = false;

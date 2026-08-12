@@ -37,6 +37,10 @@ function OxInventory:closeInventory(noEvent)
 
 	if not inv then return end
 
+	local container = Inventory.GetOpenContainer(self)
+
+	if container then container.openedBy[self.id] = nil end
+
 	inv.openedBy[self.id] = nil
 	inv:set('open', false)
 	self.open = false
@@ -1106,6 +1110,32 @@ function Inventory.SyncBackpack(inv)
 	TriggerClientEvent('ox_inventory:setBackpack', inv.id, Inventory.GetBackpackPayload(inv))
 end
 
+---@param inv OxInventory?
+---@return OxInventory?
+function Inventory.GetOpenContainer(inv)
+	if not inv or inv.type ~= 'player' or not inv.containerSlot then return end
+
+	return Inventory.GetContainerFromSlot(inv, inv.containerSlot)
+end
+
+---@param inv OxInventory?
+---@return table?
+function Inventory.GetContainerPayload(inv)
+	local container = Inventory.GetOpenContainer(inv)
+
+	if not container then return end
+
+	return {
+		id = container.id,
+		label = container.label,
+		type = 'container',
+		slots = container.slots,
+		weight = container.weight,
+		maxWeight = container.maxWeight,
+		items = container.items,
+	}
+end
+
 ---@param inv inventory
 ---@param item table | string
 ---@param count number
@@ -1968,6 +1998,10 @@ end
 local function resolveSwapEndpoint(playerInventory, invType)
 	if invType == 'player' then return playerInventory end
 	if invType == 'backpack' then return Inventory.GetBackpack(playerInventory) end
+
+	if invType == 'container' and playerInventory.containerSlot then
+		return Inventory.GetOpenContainer(playerInventory)
+	end
 
 	return Inventory(playerInventory.open)
 end

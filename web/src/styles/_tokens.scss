@@ -80,6 +80,8 @@
   --ox-grid-rows-right-split: 3;
   --ox-grid-rows-backpack: 3;
   --ox-grid-h-right-split: #{band(3, 10, 0.58, 23.6, 2)};
+  --ox-grid-h-right-triple: #{band(3, 10, 0.58, 23.6, 2)};
+  --ox-spatial-h-right-triple: #{band(5, 5.5, 0.463, 23.6, 2)};
   --ox-grid-h-backpack: #{band(3, 10, 0.58, 23.6, 2)};
   --ox-spatial-rows-left: 8;
   --ox-spatial-rows-right: 8;

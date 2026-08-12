@@ -5,10 +5,11 @@ import SettingsPanel from './SettingsPanel';
 import InventoryHotbar from './InventoryHotbar';
 import ClothingPanel from './ClothingPanel';
 import { useAppDispatch } from '../../store';
-import { refreshSlots, setAdditionalMetadata, setupInventory } from '../../store/inventory';
+import { refreshSlots, setAdditionalMetadata, setContainerInventory, setupInventory } from '../../store/inventory';
 import { useExitListener } from '../../hooks/useExitListener';
 import type { Inventory as InventoryProps } from '../../typings';
 import BackpackInventory, { useShowBackpack } from './BackpackInventory';
+import ContainerInventory, { useShowContainer } from './ContainerInventory';
 import RightInventory from './RightInventory';
 import LeftInventory from './LeftInventory';
 import Tooltip from '../utils/Tooltip';
@@ -39,9 +40,14 @@ const Inventory: React.FC = () => {
     leftInventory?: InventoryProps;
     rightInventory?: InventoryProps;
     backpackInventory?: InventoryProps;
+    containerInventory?: InventoryProps;
   }>('setupInventory', (data) => {
     dispatch(setupInventory(data));
     !inventoryVisible && setInventoryVisible(true);
+  });
+
+  useNuiEvent<InventoryProps | null | undefined>('setContainer', (data) => {
+    dispatch(setContainerInventory(data ?? null));
   });
 
   useNuiEvent('refreshSlots', (data) => dispatch(refreshSlots(data)));
@@ -55,6 +61,8 @@ const Inventory: React.FC = () => {
   }, [inventoryVisible]);
 
   const pedFocus = UiConfig.clothing.enabled && UiConfig.clothing.slots.length > 0;
+  const showContainer = useShowContainer();
+  const panelCount = 1 + (showContainer ? 1 : 0) + (showBackpack ? 1 : 0);
 
   return (
     <>
@@ -70,8 +78,9 @@ const Inventory: React.FC = () => {
               <InventoryControl />
             </div>
 
-            <div className={`inventory-side right${showBackpack ? ' split' : ''}`}>
+            <div className={`inventory-side right${panelCount > 1 ? ' split' : ''}${panelCount > 2 ? ' triple' : ''}`}>
               <RightInventory />
+              <ContainerInventory />
               <BackpackInventory />
             </div>
           </div>

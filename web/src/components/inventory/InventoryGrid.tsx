@@ -8,6 +8,7 @@ import { useAppSelector } from '../../store';
 import { useIntersection } from '../../hooks/useIntersection';
 import { Items } from '../../store/items';
 import { Locale } from '../../store/locale';
+import { togglePanelCollapsed, usePanelCollapsed } from '../../hooks/usePanelCollapse';
 import { fetchNui } from '../../utils/fetchNui';
 import InventoryFilters, {
   FilterId,
@@ -104,6 +105,8 @@ const InventoryGrid: React.FC<InventoryGridProps> = ({ inventory, slots, combine
 
   const itemCount = useMemo(() => inventory.items.filter((item) => item.name).length, [inventory.items]);
 
+  const isCollapsed = usePanelCollapsed(inventory.id);
+
   const fallbackTitle = isPlayer
     ? Locale.ui_inventory || 'Inventory'
     : inventory.type === InventoryType.BACKPACK
@@ -111,8 +114,18 @@ const InventoryGrid: React.FC<InventoryGridProps> = ({ inventory, slots, combine
     : Locale.ui_other_inventory || 'Other Inventory';
 
   return (
-    <div className="inventory-panel" style={{ pointerEvents: isBusy ? 'none' : 'auto' }}>
+    <div className={`inventory-panel${isCollapsed ? ' collapsed' : ''}`} style={{ pointerEvents: isBusy ? 'none' : 'auto' }}>
       <div className="inventory-panel-header">
+        {!isPlayer && (
+          <button
+            type="button"
+            className={`panel-collapse${isCollapsed ? ' is-collapsed' : ''}`}
+            aria-label={isCollapsed ? 'Expand' : 'Collapse'}
+            onClick={() => togglePanelCollapsed(inventory.id)}
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+          </button>
+        )}
         <div className="panel-icon">{isPlayer ? <GridIcon /> : <BagIcon />}</div>
         <div className="panel-title">{inventory.label || fallbackTitle}</div>
         <div className="panel-description">

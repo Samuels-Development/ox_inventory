@@ -1143,3 +1143,43 @@ lib.addCommand('viewinv', {
 }, function(source, args)
 	Inventory.InspectInventory(source, tonumber(args.invId) or args.invId)
 end)
+
+lib.callback.register('ox_inventory:openContainer', function(source, slot)
+	local left = Inventory(source)
+
+	if not left or not left.open then return end
+	if type(slot) ~= 'number' then return end
+
+	local slotData = left.items[slot]
+
+	if not slotData or not slotData.metadata or type(slotData.metadata.container) ~= 'string' then return end
+	if not Items.containers[slotData.name] then return end
+	if left.open == slotData.metadata.container then return end
+
+	local container = Inventory.GetContainerFromSlot(left, slot)
+
+	if not container then return end
+
+	local previous = Inventory.GetOpenContainer(left)
+
+	if previous and previous ~= container then previous.openedBy[source] = nil end
+
+	left.containerSlot = slot
+	container.openedBy[source] = true
+
+	return Inventory.GetContainerPayload(left)
+end)
+
+lib.callback.register('ox_inventory:closeContainer', function(source)
+	local left = Inventory(source)
+
+	if left then
+		local container = Inventory.GetOpenContainer(left)
+
+		if container then container.openedBy[source] = nil end
+
+		left.containerSlot = nil
+	end
+
+	return true
+end)

@@ -129,6 +129,7 @@ export const findAvailableSlot = (item: Slot, data: ItemData, items: Slot[]) => 
 export const resolveInventoryPanel = (state: State, type: Inventory['type']): Inventory => {
   if (type === InventoryType.PLAYER) return state.leftInventory;
   if (type === InventoryType.BACKPACK) return state.backpackInventory;
+  if (type === InventoryType.CONTAINER) return state.containerInventory;
 
   return state.rightInventory;
 };
