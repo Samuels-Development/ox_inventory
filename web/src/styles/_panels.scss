@@ -59,11 +59,18 @@
   justify-content: center;
   align-items: center;
   gap: var(--ox-gap-panel);
-  min-height: var(--ox-column-h);
   min-width: 0;
 }
 
-.inventory-side.left {
+.inventory-stage.layout-slots .inventory-side {
+  min-height: var(--ox-column-h);
+}
+
+.inventory-stage.layout-grid .inventory-side {
+  min-height: var(--ox-column-h-grid);
+}
+
+.inventory-stage.layout-slots .inventory-side.left {
   justify-content: space-between;
 }
 

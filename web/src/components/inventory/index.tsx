@@ -60,7 +60,7 @@ const Inventory: React.FC = () => {
     <>
       <Fade in={inventoryVisible}>
         <div className={`inventory-wrapper${pedFocus ? ' ped-focus' : ''}`}>
-          <div className="inventory-stage">
+          <div className={`inventory-stage layout-${UiConfig.layout === 'grid' ? 'grid' : 'slots'}`}>
             <div className="inventory-side left">
               <LeftInventory />
             </div>
