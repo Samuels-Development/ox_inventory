@@ -32,6 +32,8 @@ Everything from upstream ox_inventory still works: items, weapons, shops, stashe
 
 <img alt="A worn backpack open as its own panel" src=".github/preview/inventory-backpack.png" width="100%" />
 
+<img alt="The spatial grid layout, where items occupy a footprint" src=".github/preview/inventory-grid.png" width="100%" />
+
 <img alt="The in-game settings panel" src=".github/preview/inventory-settings.png" width="100%" />
 
 ## What this fork adds
