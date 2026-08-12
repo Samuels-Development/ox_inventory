@@ -3,7 +3,7 @@
 # ox_inventory (SD UI)
 
 **A rebuilt interface for [ox_inventory](https://github.com/CommunityOx/ox_inventory).**
-Equipment slots, worn backpacks that open as their own panel, item rarities, your choice of a slot or grid inventory, and a settings panel players can tune themselves.
+Equipment slots, backpacks that open as a separate stash panel below the other inventory, item rarities, your choice of a slot or grid inventory, and a settings panel players can tune themselves.
 
 Everything from upstream ox_inventory still works: items, weapons, shops, stashes, crafting, and the same exports. Only the interface and the systems listed below are new.
 
@@ -30,7 +30,7 @@ Everything from upstream ox_inventory still works: items, weapons, shops, stashe
 
 <img alt="The inventory with equipment slots and fast slots" src=".github/preview/inventory-default.png" width="100%" />
 
-<img alt="A worn backpack open as its own panel" src=".github/preview/inventory-backpack.png" width="100%" />
+<img alt="An equipped backpack open as a separate stash panel below the other inventory" src=".github/preview/inventory-backpack.png" width="100%" />
 
 <img alt="The grid inventory, where every item occupies a footprint in cells" src=".github/preview/inventory-grid.png" width="100%" />
 
@@ -41,7 +41,7 @@ Everything from upstream ox_inventory still works: items, weapons, shops, stashe
 | | |
 |---|---|
 | **Equipment slots** | Eleven wearable slots around a character figure: hat, glasses, mask, earpiece, torso, armour, backpack, gloves, belt, legs, shoes. Items declare which slot they fit. |
-| **Worn backpacks** | A bag in the backpack slot opens as a second panel beside your inventory, with its own weight and slot budget. |
+| **Backpacks** | Equip a bag in the backpack slot and it opens as a separate panel below the other inventory, working like a stash you carry around with you. It has its own slot count and weight limit, on top of what the player can already carry. |
 | **Item rarities** | Six tiers that colour the slot border and tooltip. Sorting and filtering understand them. |
 | **Slot or grid inventory** | Pick one. Slots is the classic fixed-slot inventory. Grid is a Tarkov style inventory where every item occupies a footprint in cells and can be rotated. |
 | **Settings panel** | Players tune scale, spacing, contrast, fonts, tooltips, notifications and colour theme in game. Preferences persist per character. |
@@ -182,7 +182,10 @@ setContainerProperties('trail_backpack', {
 
 `whitelist` is the inverse and restricts a container to specific items, which is how the pizza box only ever holds pizza.
 
-A container that also declares `clothing = 'backpack'` is **worn**, and opens as a docked panel whenever the inventory is open. A container without a `clothing` field is **carried**, takes up inventory space, and opens when used.
+There are two ways a container can behave, and the only difference is whether it declares a `clothing` field.
+
+- **Equipped**, when it declares `clothing = 'backpack'`. The player wears it in the backpack slot, and it opens automatically as a separate stash panel below the other inventory every time they open their inventory. Nothing to click.
+- **Carried**, when it declares no `clothing` field. It sits in the inventory grid taking up space like any other item, and opens as a stash only when the player uses it.
 
 ### Bags that ship with this fork
 
@@ -190,19 +193,19 @@ Thirteen container items, all sharing one icon set.
 
 | Item | Slots | Max load | Carry |
 |---|---|---|---|
-| `backpack_fashion` | 8 | 12 kg | Worn |
-| `backpack_small` | 10 | 15 kg | Worn |
-| `backpack_urban` | 16 | 25 kg | Worn |
-| `backpack_gamer` | 18 | 28 kg | Worn |
-| `backpack_medium` | 20 | 30 kg | Worn |
-| `backpack_hiking` | 26 | 45 kg | Worn |
-| `backpack_large` | 30 | 50 kg | Worn |
-| `duffel_bag_sport` | 36 | 65 kg | Worn |
-| `duffel_bag` | 40 | 70 kg | Worn |
+| `backpack_fashion` | 8 | 12 kg | Equipped |
+| `backpack_small` | 10 | 15 kg | Equipped |
+| `backpack_urban` | 16 | 25 kg | Equipped |
+| `backpack_gamer` | 18 | 28 kg | Equipped |
+| `backpack_medium` | 20 | 30 kg | Equipped |
+| `backpack_hiking` | 26 | 45 kg | Equipped |
+| `backpack_large` | 30 | 50 kg | Equipped |
+| `duffel_bag_sport` | 36 | 65 kg | Equipped |
+| `duffel_bag` | 40 | 70 kg | Equipped |
 | `briefcase` | 12 | 20 kg | Carried |
 | `medic_bag` | 20 | 30 kg | Carried |
-| `police_duty_belt` | n/a | +8 kg carry weight | Worn, belt slot |
-| `police_duty_belt_heavy` | n/a | +14 kg carry weight | Worn, belt slot |
+| `police_duty_belt` | n/a | +8 kg carry weight | Equipped, belt slot |
+| `police_duty_belt_heavy` | n/a | +14 kg carry weight | Equipped, belt slot |
 
 The two duty belts are worn kit rather than storage. Instead of opening a stash they raise how much the player can carry while equipped, applied as a delta so bonuses set by other resources survive. Tune the amounts in `beltCapacity` in `modules/inventory/server.lua`.
 
