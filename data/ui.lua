@@ -1,7 +1,7 @@
 
 return {
     -- 'slots' | 'grid'
-    layout = 'slots',
+    layout = 'grid',
 
     pedPreview = {
         mode = 'silhouette',
@@ -16,6 +16,8 @@ return {
 
     grid = {
         columns = 10,
+        rows = 8,
+        containerScale = 1.6,
         allowRotate = true,
         defaultSize = { 1, 1 },
         -- fallbacks by item class when an item has no explicit `grid`

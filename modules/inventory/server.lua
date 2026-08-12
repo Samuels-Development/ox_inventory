@@ -592,6 +592,8 @@ function Inventory.Create(id, label, invType, slots, weight, maxWeight, owner, i
 		-- Equipment slots are appended after the normal player slots; the count is 0 unless
 		-- clothing is enabled, so this is a no-op by default.
 		slots = (slots or 0) + Grid.getEquipCount()
+	elseif invType ~= 'shop' and invType ~= 'crafting' then
+		slots = Grid.scaleContainerSlots(slots)
 	end
 
 	local self = {

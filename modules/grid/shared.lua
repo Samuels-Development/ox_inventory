@@ -33,6 +33,22 @@ function Grid.isGridLayout()
     return ui ~= nil and ui.layout == 'grid'
 end
 
+---@param slots number?
+---@return number?
+function Grid.scaleContainerSlots(slots)
+    local count = tonumber(slots)
+
+    if not count or not Grid.isGridLayout() then return slots end
+
+    local ui = getConfig()
+    local grid = ui and type(ui.grid) == 'table' and ui.grid or nil
+    local scale = grid and tonumber(grid.containerScale) or nil
+
+    if not scale or scale <= 1 then return slots end
+
+    return ceil(count * scale)
+end
+
 ---@return number
 function Grid.getColumns()
     local ui = getConfig()
