@@ -66,7 +66,7 @@ layout = 'slots',   -- 'slots' | 'grid'
 grid = {
     columns = 10,
     rows = 8,
-    containerScale = 1.6,
+    containerRows = 8,
     allowRotate = true,
     defaultSize = { 1, 1 },
     defaults = {
@@ -82,13 +82,13 @@ grid = {
 |---|---|
 | `columns` | Cells across, clamped to 5 through 14. |
 | `rows` | Grid layout only. The player inventory becomes `rows * columns` cells, replacing the `inventory:slots` convar. Equipment slots are still appended on top. |
-| `containerScale` | Grid layout only. Multiplies the slot count of every stash, trunk, glovebox, drop and container. |
+| `containerRows` | Grid layout only. Every stash, trunk, glovebox, drop and container becomes `containerRows * columns` cells, replacing its registered slot count. |
 | `allowRotate` | Lets players rotate an item with <kbd>R</kbd> while dragging. |
 | `defaults` | Fallback footprint by item class when an item declares no `grid` of its own. |
 
-**Why `rows` and `containerScale` exist.** In slots layout a slot holds one item whatever its size. In grid layout a 2x3 backpack eats six cells. Reusing the same numbers would quietly shrink every inventory on the server the moment you switch, so grid layout sizes the player inventory from `rows` and scales every container by `containerScale`. Both apply only when `layout = 'grid'`, and slots layout keeps using `inventory:slots` and each container's registered count untouched.
+**Why `rows` and `containerRows` exist.** In slots layout a slot holds one item whatever its size. In grid layout a 2x3 backpack eats six cells. Reusing the same numbers would quietly shrink every inventory on the server the moment you switch, so grid layout sizes the player inventory from `rows` and every container from `containerRows`. Both apply only when `layout = 'grid'`; slots layout keeps using `inventory:slots` and each container's registered count untouched.
 
-Scaling is proportional rather than equalising: a small stash stays smaller than a large one, it simply stops losing capacity relative to slots layout.
+Keeping `rows` and `containerRows` equal gives both panels the same dimensions, so the two sides of the interface stay symmetrical. Set `containerRows` lower if you would rather stashes were smaller than the player inventory.
 
 > [!WARNING]
 > Switching an existing server from `slots` to `grid` does not reflow inventories that already have items in them. Positions were assigned under the old layout and will overlap. Change it on a fresh database, or expect players to rearrange.

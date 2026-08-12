@@ -42,7 +42,14 @@ function Grid.scaleContainerSlots(slots)
 
     local ui = getConfig()
     local grid = ui and type(ui.grid) == 'table' and ui.grid or nil
-    local scale = grid and tonumber(grid.containerScale) or nil
+
+    if not grid then return slots end
+
+    local rows = tonumber(grid.containerRows)
+
+    if rows then return floor(math.max(1, rows)) * Grid.getColumns() end
+
+    local scale = tonumber(grid.containerScale)
 
     if not scale or scale <= 1 then return slots end
 

@@ -17,7 +17,7 @@ return {
     grid = {
         columns = 10,
         rows = 8,
-        containerScale = 1.6,
+        containerRows = 8,
         allowRotate = true,
         defaultSize = { 1, 1 },
         -- fallbacks by item class when an item has no explicit `grid`

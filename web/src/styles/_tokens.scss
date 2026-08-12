@@ -81,10 +81,10 @@
   --ox-grid-rows-backpack: 3;
   --ox-grid-h-right-split: #{band(3, 10, 0.58, 23.6, 2)};
   --ox-grid-h-backpack: #{band(3, 10, 0.58, 23.6, 2)};
-  --ox-spatial-rows-left: 7;
-  --ox-spatial-rows-right: 10;
-  --ox-spatial-h-left: #{band(7, 5.5, 0.463, 33.2)};
-  --ox-spatial-h-right: #{band(10, 5.5, 0.463, 11)};
+  --ox-spatial-rows-left: 8;
+  --ox-spatial-rows-right: 8;
+  --ox-spatial-h-left: #{band(8, 5.5, 0.463, 33.2)};
+  --ox-spatial-h-right: #{band(8, 5.5, 0.463, 11)};
   --ox-column-h-grid: calc(var(--ox-spatial-h-right) + #{ui(12.2)});
   --ox-spatial-rows-right-split: 5;
   --ox-spatial-rows-backpack: 5;

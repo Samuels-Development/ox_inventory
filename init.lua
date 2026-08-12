@@ -513,13 +513,21 @@ do
     ui.injuries.enabled = ui.injuries.enabled ~= false and hasInjuryPart and hasInjuryType
 
     if ui.layout == 'grid' then
-        local gridRows = tonumber(ui.grid and ui.grid.rows)
         local gridColumns = tonumber(ui.grid and ui.grid.columns)
 
-        if gridRows and gridColumns then
+        if gridColumns then
             gridColumns = math.min(14, math.max(5, math.floor(gridColumns)))
-            gridRows = math.max(1, math.floor(gridRows))
-            shared.playerslots = gridRows * gridColumns
+
+            local gridRows = tonumber(ui.grid and ui.grid.rows)
+            local containerRows = tonumber(ui.grid and ui.grid.containerRows)
+
+            if gridRows then
+                shared.playerslots = math.max(1, math.floor(gridRows)) * gridColumns
+            end
+
+            if containerRows then
+                shared.dropslots = math.max(1, math.floor(containerRows)) * gridColumns
+            end
         end
     end
 
