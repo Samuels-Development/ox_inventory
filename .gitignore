@@ -7,3 +7,4 @@ node_modules
 .claude/
 CLAUDE.md
 *TEMPclaude*
+*.bak
