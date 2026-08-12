@@ -64,7 +64,7 @@ const GROUP_LABELS: Record<PrefGroup, string> = {
 };
 
 const GROUP_DESCRIPTIONS: Record<PrefGroup, string> = {
-  display: 'Size, dimming, the character camera and motion.',
+  display: 'Size, spacing, dimming and motion.',
   accessibility: 'Make item rarity readable without relying on colour alone.',
   behaviour: 'Tooltips, the hotbar and what a slot shows.',
   inventory: 'How items are ordered on screen. Nothing here moves an item.',
