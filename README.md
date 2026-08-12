@@ -1,93 +1,258 @@
-# ox_inventory (SD UI Fork)
+<div align="center">
 
-> **This is a modified fork of [ox_inventory](https://github.com/overextended/ox_inventory) with a completely redesigned UI to match the visual style of sd-crafting.**
+# ox_inventory (SD UI)
 
-If you have any issues or suggestions, feel free to PR, create an issue or join my discord: https://discord.gg/FzPehMQaBQ
+**A rebuilt interface for [ox_inventory](https://github.com/CommunityOx/ox_inventory).**
+Equipment slots, worn backpacks that open as their own panel, item rarities, an optional spatial grid, and a settings panel players can tune themselves.
+
+Everything from upstream ox_inventory still works: items, weapons, shops, stashes, crafting, and the same exports. Only the interface and the systems listed below are new.
+
+[![Release](https://img.shields.io/github/v/release/Samuels-Development/ox_inventory?label=Release&logo=github)](https://github.com/Samuels-Development/ox_inventory/releases)
+[![Stars](https://img.shields.io/github/stars/Samuels-Development/ox_inventory?label=Stars&logo=github)](https://github.com/Samuels-Development/ox_inventory)
+[![Discord](https://img.shields.io/discord/842045164951437383?label=Discord&logo=discord&logoColor=white)](https://discord.gg/FzPehMQaBQ)
+[![Licence](https://img.shields.io/badge/Licence-GPL--3.0-94DD0C)](LICENSE)
+
+![Framework](https://img.shields.io/badge/Framework-QBox%20%7C%20QBCore%20%7C%20ESX%20%7C%20ox__core%20%7C%20ND-3b82f6)
+![Layout](https://img.shields.io/badge/Layout-slots%20or%20grid-3b82f6)
+![Upstream](https://img.shields.io/badge/Upstream-CommunityOx%2Fox__inventory-3b82f6)
+
+[**Store**](https://fivem.samueldev.shop) · [**Discord**](https://discord.gg/FzPehMQaBQ) · [**Upstream docs**](https://coxdocs.dev/ox_inventory)
+
+</div>
+
+---
+
+> [!IMPORTANT]
+> **Download the packaged `ox_inventory.zip` from [releases](https://github.com/Samuels-Development/ox_inventory/releases), not the source.**
+> The green **Code > Download ZIP** button gives you source only. `web/build/` is gitignored, so the interface will not load. If you did clone the source, [build it yourself](#building-from-source).
 
 ## Preview
-<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/3c85e64d-7330-4b7d-a750-08ab925cac9c" />
 
+<img alt="The inventory with equipment slots and fast slots" src=".github/preview/inventory-default.png" width="100%" />
 
-<img width="1920" height="1080" alt="FiveM_GTAProcess_VhzFiz3DF4" src="https://github.com/user-attachments/assets/eb7a1120-3220-474b-bbc7-981bc9e5694c" />
+<img alt="A worn backpack open as its own panel" src=".github/preview/inventory-backpack.png" width="100%" />
 
-![FiveM_GTAProcess_bBgveoHGWF](https://github.com/user-attachments/assets/c8689320-92ba-4bfa-aa1a-c1eed1f5b44e)
+<img alt="The in-game settings panel" src=".github/preview/inventory-settings.png" width="100%" />
 
-## Works Great With
+## What this fork adds
 
-<img width="3840" height="2160" alt="image_2026-01-05_182906460" src="https://github.com/user-attachments/assets/127eef89-a41d-4fd7-820d-9bb15c28a62f" />
+| | |
+|---|---|
+| **Equipment slots** | Eleven wearable slots around a character figure: hat, glasses, mask, earpiece, torso, armour, backpack, gloves, belt, legs, shoes. Items declare which slot they fit. |
+| **Worn backpacks** | A bag in the backpack slot opens as a second panel beside your inventory, with its own weight and slot budget. |
+| **Item rarities** | Six tiers that colour the slot border and tooltip. Sorting and filtering understand them. |
+| **Two layouts** | Classic fixed slots, or a spatial grid where items occupy a footprint and can be rotated. |
+| **Settings panel** | Players tune scale, spacing, contrast, fonts, tooltips, notifications and colour theme in game. Preferences persist per character. |
+| **Injury markers** | Optional overlay marking wounds on the character figure by body part, type and severity. |
+| **Fast slots** | The first five slots surfaced as a labelled quick-use row bound to the number keys. |
+| **Colour themes** | Seven presets plus full custom colour overrides. |
+| **Resolution independent** | Every size derives from a viewport unit, so the interface holds its proportions from 1080p to ultrawide. |
 
+## Configuration
 
-Advanced Crafting (Source): https://fivem.samueldev.shop/product/7203651
+Everything below lives in **`data/ui.lua`**.
 
-Advanced Crafting (Encrypted): https://fivem.samueldev.shop/product/7203650
+### Layout
 
-## What's Different
+```lua
+layout = 'slots',   -- 'slots' | 'grid'
+```
 
-- **Completely redesigned UI** - Modern dark theme matching sd-crafting's visual style
-- **Search functionality** - Filter items by name or label in any inventory
-- **Noise texture overlays** - Subtle noise effects with overlay blend mode for depth
-- **Weight display** - Color-coded weight indicator (green/yellow/red based on capacity)
-- **Item count display** - Shows total item count in inventory header
-- **Improved slot design** - Rounded corners, better spacing, and cleaner item presentation
-- **Hotbar slot numbers** - Clear slot indicators for quick-use items (1-5)
-- **Durability bars** - Color-gradient durability indicators on items
-- **Modern tooltips** - Redesigned item tooltips with better formatting
-- **Item notifications** - Styled popup notifications for item actions (use, give, receive)
-- **Scales with Resolution** - The inventory will always look great regardless of resolution!
+`slots` is the classic fixed-slot inventory. `grid` gives every item a footprint measured in cells:
 
-> **⚠️ Important:** Download the `ox_inventory.zip` from releases, **not** the source code. The source code does not include the pre-built UI files required for the resource to work.
+```lua
+grid = {
+    columns = 10,
+    allowRotate = true,
+    defaultSize = { 1, 1 },
+    defaults = {
+        weapon    = { 2, 2 },
+        ammo      = { 1, 1 },
+        component = { 1, 1 },
+        tint      = { 1, 1 },
+    },
+},
+```
 
-# Original ox_inventory
+`defaults` is the fallback by item class when an item declares no `grid` of its own.
 
-A complete inventory system for FiveM, implementing items, weapons, shops, and more without any strict framework dependency.
+> [!WARNING]
+> Switching an existing server from `slots` to `grid` does not reflow inventories that already have items in them. Positions were assigned under the old layout and will overlap. Change it on a fresh database, or expect players to rearrange.
 
-![](https://img.shields.io/github/downloads/communityox/ox_inventory/total?logo=github)
-![](https://img.shields.io/github/downloads/communityox/ox_inventory/latest/total?logo=github)
-![](https://img.shields.io/github/contributors/communityox/ox_inventory?logo=github)
-![](https://img.shields.io/github/v/release/communityox/ox_inventory?logo=github)
+### Equipment slots
 
-## 📚 Documentation
+```lua
+clothing = {
+    enabled = true,
+    slots = {
+        { name = 'hat',      label = 'Hat',      side = 'left'  },
+        { name = 'backpack', label = 'Backpack', side = 'right' },
+        { name = 'belt',     label = 'Belt',     side = 'right' },
+    },
+},
+```
 
-https://coxdocs.dev/ox_inventory
+`side` puts the slot in the column to the left or right of the character figure. Order in the table is display order.
 
-## Supported frameworks
+**Adding a slot** takes three steps:
 
-We do not guarantee compatibility or support for third-party resources.
+1. Add the entry to `clothing.slots` in `data/ui.lua`.
+2. Give it an icon in `web/src/components/utils/icons/ClothingIcons.tsx`, adding your component to the `CLOTHING_ICONS` map under the same `name`. This is optional: an unmapped slot falls back to a generic glyph.
+3. Rebuild the interface (`cd web && npm run build`).
 
-- [ox_core](https://github.com/communityox/ox_core)
-- [esx](https://github.com/esx-framework/esx_core)
-- [qbox](https://github.com/Qbox-project/qbx_core)
-- [nd_core](https://github.com/ND-Framework/ND_Core)
+Slot count is not fixed, but each slot is one more reserved slot on every player inventory, so keep it deliberate.
 
-## ✨ Features
+### Rarities
 
-- Server-side security ensures interactions with items, shops, and stashes are all validated.
-- Logging for important events, such as purchases, item movement, and item creation or removal.
-- Supports player-owned vehicles, licenses, and group systems implemented by frameworks.
-- Fully synchronised, allowing multiple players to [access the same inventory](https://user-images.githubusercontent.com/65407488/230926091-c0033732-d293-48c9-9d62-6f6ae0a8a488.mp4).
+```lua
+rarity = {
+    enabled = true,
+    default = 'common',
+    tiers = {
+        common    = { label = 'Common',    color = '#9CA3AF', order = 1 },
+        uncommon  = { label = 'Uncommon',  color = '#4ADE80', order = 2 },
+        rare      = { label = 'Rare',      color = '#38BDF8', order = 3 },
+        epic      = { label = 'Epic',      color = '#A855F7', order = 4 },
+        legendary = { label = 'Legendary', color = '#F59E0B', order = 5 },
+        mythic    = { label = 'Mythic',    color = '#FB7185', order = 6 },
+    },
+},
+```
 
-### Items
+`order` drives rarity sorting and the tooltip bar, so keep it sequential. Any item without a `rarity` falls back to `default`. Add or rename tiers freely: the interface reads this table rather than a hardcoded list.
 
-- Inventory items are stored per-slot, with customisable metadata to support item uniqueness.
-- Overrides default weapon-system with weapons as items.
-- Weapon attachments and ammo system, including special ammo types.
-- Durability, allowing items to be depleted or removed overtime.
-- Internal item system provides secure and easy handling for item use effects.
-- Compatibility with 3rd party framework item registration.
+### Themes
 
-### Shops
+`theme` picks the active preset from `themes`. Seven ship by default (`white`, `yellow`, `orange`, `red`, `purple`, `blue`, `green`) and players can override individual colours from the settings panel.
 
-- Restricted access based on groups and licenses.
-- Support different currency for items (black money, poker chips, etc).
+## Defining items
 
-### Stashes
+Items live in **`data/items.lua`**. Beyond the stock ox_inventory fields, this fork reads `rarity`, `grid` and `clothing`.
 
-- Personal stashes, linking a stash with a specific identifier or creating per-player instances.
-- Restricted access based on groups.
-- Registration of new stashes from any resource.
-- Containers allow access to stashes when using an item, like a paperbag or backpack.
-- Access gloveboxes and trunks for any vehicle.
-- Random item generation inside dumpsters and unowned vehicles.
+```lua
+['trail_backpack'] = {
+    label = 'Trail Backpack',
+    weight = 2000,
+    stack = false,
+    close = false,
+    consume = 0,
+    rarity = 'rare',            -- tier key from ui.lua
+    grid = { 2, 3 },            -- { width, height } in cells, grid layout only
+    clothing = 'backpack',      -- equipment slot this item occupies
+    description = 'Weatherproof shell, hip belt, and enough straps to lose a thumb in.',
+},
+```
+
+| Field | Purpose |
+|---|---|
+| `rarity` | Tier key from `ui.lua`. Colours the slot border and tooltip. Omit for `common`. |
+| `grid` | `{ width, height }` in cells. Only used by the `grid` layout; ignored in `slots`. |
+| `clothing` | Equipment slot name, or a table of names when an item fits more than one. Validated against `ui.lua` at startup, and a bad value is reported in console. |
+| `client.image` | Optional. **Omit it** when the image is named after the item: the interface falls back to `web/images/<item name>.png` on its own. |
+
+### Item images
+
+Drop a PNG into `web/images/` named after the item (`trail_backpack.png`) and it resolves automatically. The house size is **100 x 100 RGBA**, though the interface scales anything with `object-fit: contain`, so a different size will still fit, just with letterboxing.
+
+### Containers
+
+A container item opens a second inventory. Register it in **`modules/items/containers.lua`**:
+
+```lua
+setContainerProperties('trail_backpack', {
+    slots = 26,
+    maxWeight = 45000,          -- grams
+    blacklist = containerItems, -- stops bags nesting inside bags
+})
+```
+
+`whitelist` is the inverse and restricts a container to specific items, which is how the pizza box only ever holds pizza.
+
+A container that also declares `clothing = 'backpack'` is **worn**, and opens as a docked panel whenever the inventory is open. A container without a `clothing` field is **carried**, takes up inventory space, and opens when used.
+
+### Bags that ship with this fork
+
+Thirteen container items, all sharing one icon set.
+
+| Item | Slots | Max load | Carry |
+|---|---|---|---|
+| `backpack_fashion` | 8 | 12 kg | Worn |
+| `backpack_small` | 10 | 15 kg | Worn |
+| `backpack_urban` | 16 | 25 kg | Worn |
+| `backpack_gamer` | 18 | 28 kg | Worn |
+| `backpack_medium` | 20 | 30 kg | Worn |
+| `backpack_hiking` | 26 | 45 kg | Worn |
+| `backpack_large` | 30 | 50 kg | Worn |
+| `duffel_bag_sport` | 36 | 65 kg | Worn |
+| `duffel_bag` | 40 | 70 kg | Worn |
+| `briefcase` | 12 | 20 kg | Carried |
+| `medic_bag` | 20 | 30 kg | Carried |
+| `police_duty_belt` | n/a | +8 kg carry weight | Worn, belt slot |
+| `police_duty_belt_heavy` | n/a | +14 kg carry weight | Worn, belt slot |
+
+The two duty belts are worn kit rather than storage. Instead of opening a stash they raise how much the player can carry while equipped, applied as a delta so bonuses set by other resources survive. Tune the amounts in `beltCapacity` in `modules/inventory/server.lua`.
+
+## Installation
+
+### Dependencies
+
+| Resource | What it is for |
+| --- | --- |
+| [ox_lib](https://github.com/CommunityOx/ox_lib) | Shared library |
+| [oxmysql](https://github.com/CommunityOx/oxmysql) | Database access |
+
+### Supported frameworks
+
+[ox_core](https://github.com/communityox/ox_core), [esx](https://github.com/esx-framework/esx_core), [qbox](https://github.com/Qbox-project/qbx_core), [nd_core](https://github.com/ND-Framework/ND_Core), and QBCore. Compatibility with third-party resources is not guaranteed.
+
+### Steps
+
+1. Download `ox_inventory.zip` from [releases](https://github.com/Samuels-Development/ox_inventory/releases) and extract it into your resources folder.
+2. Start it after its dependencies:
+
+```cfg
+ensure ox_lib
+ensure oxmysql
+ensure ox_inventory
+```
+
+3. Adjust `data/ui.lua` to taste. Nothing there is required to boot.
+
+### Building from source
+
+Cloned the repo instead of using a release? `web/build/` is gitignored, so build the interface yourself:
+
+```bash
+cd web
+npm ci
+npm run build
+```
+
+Rebuild after **any** change under `web/`, including `data/ui.lua` edits that add an equipment slot needing a new icon.
+
+## Staying current with upstream
+
+This fork tracks [CommunityOx/ox_inventory](https://github.com/CommunityOx/ox_inventory).
+
+A scheduled workflow (`.github/workflows/upstream-sync.yml`) checks upstream daily and opens a pull request when it is ahead, so updates arrive as a reviewable diff rather than a surprise. You can also run it on demand from the Actions tab.
+
+To pull updates by hand:
+
+```bash
+git remote add upstream https://github.com/CommunityOx/ox_inventory.git
+git fetch upstream
+git merge upstream/main
+```
+
+> [!NOTE]
+> Expect conflicts in `web/`. The interface here is a rewrite, so upstream changes to their UI rarely apply cleanly. Server and shared Lua usually merges without trouble.
+
+## Credits
+
+- **[Overextended](https://github.com/overextended)** wrote the original ox_inventory, and this is still their resource underneath.
+- **[CommunityOx](https://github.com/CommunityOx/ox_inventory)** maintain it now, and are the upstream this fork tracks.
+- **[DemiAutomatic/ox_inv_redesign](https://github.com/DemiAutomatic/ox_inv_redesign)** is the redesign this interface grew out of.
+- Bag and container icons come from **[swkeep/keep-bags](https://github.com/swkeep/keep-bags)**, used unmodified under GPL-3.0. See [`web/images/CREDITS.md`](web/images/CREDITS.md) for the per-file mapping.
 
 ## Copyright
 
@@ -98,4 +263,3 @@ This program is free software: you can redistribute it and/or modify it under th
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
-

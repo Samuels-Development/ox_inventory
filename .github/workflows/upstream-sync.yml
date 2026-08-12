@@ -1,0 +1,60 @@
+name: Sync upstream
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/CommunityOx/ox_inventory.git || true
+          git fetch upstream main
+
+      - name: Check for new commits
+        id: check
+        run: |
+          BEHIND=$(git rev-list --count HEAD..upstream/main)
+          echo "behind=$BEHIND" >> "$GITHUB_OUTPUT"
+          echo "Upstream is $BEHIND commit(s) ahead."
+
+      - name: Open sync pull request
+        if: steps.check.outputs.behind != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="upstream-sync"
+          git checkout -B "$BRANCH"
+
+          if git merge upstream/main --no-edit; then
+            echo "Merged cleanly."
+          else
+            echo "Conflicts left in place for manual resolution."
+            git add -A
+            git commit -m "chore: merge upstream with conflicts" || true
+          fi
+
+          git push --force origin "$BRANCH"
+
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore: sync ${{ steps.check.outputs.behind }} commit(s) from upstream" \
+            --body "Automated sync from [CommunityOx/ox_inventory](https://github.com/CommunityOx/ox_inventory). Review the diff before merging, since this fork carries a rewritten UI in \`web/\`." \
+            || gh pr edit "$BRANCH" --title "chore: sync ${{ steps.check.outputs.behind }} commit(s) from upstream"
