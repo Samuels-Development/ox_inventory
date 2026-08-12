@@ -76,6 +76,7 @@
   --ox-grid-rows-right: 6;
   --ox-grid-h-left: #{band(4, 10, 0.58, 33.2)};
   --ox-grid-h-right: #{band(6, 10, 0.58, 11)};
+  --ox-column-h: calc(var(--ox-grid-h-right) + #{ui(12.2)});
   --ox-grid-rows-right-split: 3;
   --ox-grid-rows-backpack: 3;
   --ox-grid-h-right-split: #{band(3, 10, 0.58, 23.6, 2)};

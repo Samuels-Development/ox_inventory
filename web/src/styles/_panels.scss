@@ -59,8 +59,12 @@
   justify-content: center;
   align-items: center;
   gap: var(--ox-gap-panel);
-  min-height: 0;
+  min-height: var(--ox-column-h);
   min-width: 0;
+}
+
+.inventory-side.left {
+  justify-content: space-between;
 }
 
 .inventory-centre {
