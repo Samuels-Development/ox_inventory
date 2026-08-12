@@ -1160,6 +1160,13 @@
   image-rendering: -webkit-optimize-contrast;
 }
 
+.item-drag-preview-grid {
+  border-radius: var(--ox-radius-sm);
+  border: var(--ox-line) solid var(--ox-stroke-30);
+  background-color: var(--ox-slot-hover);
+  background-size: 78%;
+}
+
 .transition-fade-enter {
   opacity: 0;
 }

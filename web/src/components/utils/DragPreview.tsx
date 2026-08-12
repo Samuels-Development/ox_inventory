@@ -1,5 +1,8 @@
-import React, { RefObject, useRef } from 'react';
+import React, { RefObject, useMemo, useRef } from 'react';
 import { DragLayerMonitor, useDragLayer, XYCoord } from 'react-dnd';
+import { getItemSize } from '../../helpers';
+import useRotateKey from '../../hooks/useRotateKey';
+import { isGridLayout } from '../../store/uiConfig';
 import { DragSource } from '../../typings';
 
 interface DragLayerProps {
@@ -39,6 +42,19 @@ export const calculatePointerPosition = (monitor: DragLayerMonitor, childRef: Re
   return subtract(offset, middle);
 };
 
+const readCellMetrics = (): { cell: string; gap: string } => {
+  const grid = document.querySelector('.spatial-grid-cells');
+  const styles = getComputedStyle(grid ?? document.documentElement);
+
+  return {
+    cell: styles.getPropertyValue('--ox-cell').trim() || 'var(--ox-cell)',
+    gap: styles.getPropertyValue('--ox-cell-gap').trim() || 'var(--ox-cell-gap)',
+  };
+};
+
+const span = (count: number, cell: string, gap: string): string =>
+  count <= 1 ? cell : `calc(${cell} * ${count} + ${gap} * ${count - 1})`;
+
 const DragPreview: React.FC = () => {
   const element = useRef<HTMLDivElement>(null);
 
@@ -48,15 +64,32 @@ const DragPreview: React.FC = () => {
     isDragging: monitor.isDragging(),
   }));
 
+  const rotated = useRotateKey(isDragging && data?.item ? data : null);
+
+  const footprint = useMemo(() => {
+    if (!isGridLayout() || !isDragging || !data?.item?.name) return;
+
+    const [width, height] = getItemSize({
+      slot: data.item.slot,
+      name: data.item.name,
+      metadata: { rotated },
+    });
+
+    const { cell, gap } = readCellMetrics();
+
+    return { width: span(width, cell, gap), height: span(height, cell, gap) };
+  }, [isDragging, data?.item?.name, data?.item?.slot, rotated]);
+
   return (
     <>
       {isDragging && currentOffset && data.item && (
         <div
-          className="item-drag-preview"
+          className={`item-drag-preview${footprint ? ' item-drag-preview-grid' : ''}`}
           ref={element}
           style={{
             transform: `translate(${currentOffset.x}px, ${currentOffset.y}px)`,
             backgroundImage: data.image,
+            ...(footprint ? { width: footprint.width, height: footprint.height } : null),
           }}
         />
       )}
