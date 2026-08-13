@@ -30,6 +30,7 @@ export interface UiConfig {
   grid: { columns: number; allowRotate: boolean };
   clothing: { enabled: boolean; slots: ClothingSlotDef[] };
   rarity: { enabled: boolean; default: string; tiers: Record<string, RarityTier> };
+  dim: { enabled: boolean };
   theme: { name: string; colors: ThemeColors };
 }
 
@@ -61,6 +62,9 @@ export const DEFAULT_UI_CONFIG: UiConfig = {
       legendary: { label: 'Legendary', color: '#F59E0B', order: 5 },
       mythic: { label: 'Mythic', color: '#FB7185', order: 6 },
     },
+  },
+  dim: {
+    enabled: true,
   },
   theme: {
     name: 'white',

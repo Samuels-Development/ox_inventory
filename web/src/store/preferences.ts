@@ -101,6 +101,7 @@ interface PrefDefBase {
   label: string;
   description?: string;
   hidden?: boolean;
+  available?: () => boolean;
 }
 
 export interface BooleanPrefDef extends PrefDefBase {
@@ -164,13 +165,16 @@ export const PREFERENCES: readonly PrefDef[] = [
     min: 0,
     max: 1,
     step: 0.05,
+    available: () => UiConfig.dim.enabled,
     apply: (value: number) => {
       const root = document.documentElement;
 
       if (!root) return;
 
-      root.style.setProperty('--ox-dim', String(value));
-      root.style.setProperty('--ox-dim-k', String(value / 0.9));
+      const amount = UiConfig.dim.enabled ? value : 0;
+
+      root.style.setProperty('--ox-dim', String(amount));
+      root.style.setProperty('--ox-dim-k', String(amount / 0.9));
     },
   },
   {
@@ -430,12 +434,15 @@ export const PREFERENCES: readonly PrefDef[] = [
     description: 'How item rarity is shown on a slot. The tooltip always names the tier.',
     default: 'glow',
     options: RARITY_DISPLAY_MODES,
+    available: () => UiConfig.rarity.enabled,
     apply: (value: string) => {
       const root = document.documentElement;
 
       if (!root) return;
 
-      for (const mode of RARITY_DISPLAY_MODES) root.classList.toggle(`rarity-display-${mode}`, mode === value);
+      const enabled = UiConfig.rarity.enabled;
+
+      for (const mode of RARITY_DISPLAY_MODES) root.classList.toggle(`rarity-display-${mode}`, enabled && mode === value);
     },
   },
   {
@@ -446,6 +453,7 @@ export const PREFERENCES: readonly PrefDef[] = [
     description: 'Alternative rarity palettes that stay distinguishable with colour vision deficiency.',
     default: 'default',
     options: RARITY_PALETTES,
+    available: () => UiConfig.rarity.enabled,
     apply: (value: string) => {
       const root = document.documentElement;
 
@@ -658,7 +666,7 @@ for (const def of PREFERENCES) defByKey[def.key] = def;
 export const getPrefDef = (key: string): PrefDef | undefined => defByKey[key];
 
 export const getPreferences = (group: PrefGroup): PrefDef[] =>
-  PREFERENCES.filter((def) => def.group === group && !def.hidden);
+  PREFERENCES.filter((def) => def.group === group && !def.hidden && (!def.available || def.available()));
 
 
 export const prefLabelKey = (key: string) => `ui_pref_${key}`;

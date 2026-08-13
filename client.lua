@@ -1442,6 +1442,9 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 					default = ui.rarity.default,
 					tiers = ui.rarity.tiers,
 				},
+				dim = {
+					enabled = ui.dim.enabled,
+				},
 				theme = theme,
 				defaultTheme = defaultTheme,
 				prefs = type(playerPrefs) == 'table' and next(playerPrefs) and playerPrefs or nil,

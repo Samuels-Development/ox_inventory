@@ -108,6 +108,20 @@ The same key works on entries in `data/stashes.lua`. It is ignored when `layout 
 > [!WARNING]
 > Switching an existing server from `slots` to `grid` does not reflow inventories that already have items in them. Positions were assigned under the old layout and will overlap. Change it on a fresh database, or expect players to rearrange.
 
+### Background dim
+
+```lua
+dim = {
+    enabled = true,
+},
+```
+
+The dark scrim drawn over the world behind the interface. Players can adjust how strong it is from the settings panel.
+
+Set `enabled = false` and the scrim is gone entirely — the world shows through at full brightness, and the **Background dim** slider disappears from the settings panel, so players cannot turn it back on. A value a player saved earlier is ignored while it is off. Convar override: `setr inventory:dim 0`.
+
+This does not touch the blur GTA itself applies behind the inventory. That is separate and stays on `setr inventory:screenblur 0`.
+
 ### Equipment slots
 
 ```lua
@@ -131,6 +145,10 @@ These are the slots down either side of the character. `side` decides which side
 
 You can have as many slots as you like, but each one permanently reserves a slot on every player's inventory, so do not add them for the sake of it.
 
+Set `enabled = false` to remove equipment slots completely — no columns, no character preview focus, and no slots reserved on any inventory. Convar override: `setr inventory:clothing 0`.
+
+Keeping only a couple of slots works too. If every slot you keep sits on the same `side`, they are split evenly across both sides instead, so the character stays centred rather than being pushed off to one side by an empty column. When both sides have slots, your `side` values are used exactly as written.
+
 ### Rarities
 
 ```lua
@@ -149,6 +167,8 @@ rarity = {
 ```
 
 `order` is what "sort by rarity" actually sorts on, so number them 1 upwards with no gaps. Any item that does not set a `rarity` is treated as `default`. Add, remove or rename tiers as you like; nothing is hardcoded, the interface just reads this table.
+
+Set `enabled = false` to remove rarity entirely — no glow, no colours, no mention in tooltips, and the **Rarity display** and **Rarity colours** entries disappear from the settings panel. Convar override: `setr inventory:rarity 0`.
 
 ### Themes
 

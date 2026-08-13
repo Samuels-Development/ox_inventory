@@ -116,6 +116,10 @@ const mergeRarity = (rarity?: Partial<UiConfigShape['rarity']>): UiConfigShape['
   tiers: rarity?.tiers ? { ...UiConfig.rarity.tiers, ...rarity.tiers } : UiConfig.rarity.tiers,
 });
 
+const mergeDim = (dim?: Partial<UiConfigShape['dim']>): UiConfigShape['dim'] => ({
+  enabled: typeof dim?.enabled === 'boolean' ? dim.enabled : UiConfig.dim.enabled,
+});
+
 const mergeTheme = (theme?: Partial<UiConfigShape['theme']>): UiConfigShape['theme'] => ({
   name: typeof theme?.name === 'string' ? theme.name : UiConfig.theme.name,
   colors: theme?.colors ? { ...UiConfig.theme.colors, ...theme.colors } : UiConfig.theme.colors,
@@ -158,6 +162,7 @@ export const setUiConfig = (cfg?: UiConfigMessage) => {
       grid: mergeGrid(cfg.grid),
       clothing: mergeClothing(cfg.clothing),
       rarity: mergeRarity(cfg.rarity),
+      dim: mergeDim(cfg.dim),
       theme: mergeTheme(cfg.theme),
     };
 

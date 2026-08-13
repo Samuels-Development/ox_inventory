@@ -3,6 +3,10 @@ return {
     -- 'slots' | 'grid'
     layout = 'slots',
 
+    dim = {
+        enabled = true,
+    },
+
     pedPreview = {
         mode = 'silhouette',
         distance = 2.4,       -- metres in front of the camera

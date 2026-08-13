@@ -332,12 +332,17 @@ do
     local gridcolumns = GetConvarInt('inventory:gridcolumns', 0)
     local clothing = GetConvarInt('inventory:clothing', -1)
     local rarity = GetConvarInt('inventory:rarity', -1)
+    local dim = GetConvarInt('inventory:dim', -1)
     local theme = GetConvar('inventory:theme', '')
 
     if layout ~= '' then ui.layout = layout end
     if gridcolumns > 0 then ui.grid.columns = gridcolumns end
     if clothing >= 0 then ui.clothing.enabled = clothing == 1 end
     if rarity >= 0 then ui.rarity.enabled = rarity == 1 end
+
+    if type(ui.dim) ~= 'table' then ui.dim = {} end
+
+    if dim >= 0 then ui.dim.enabled = dim == 1 end
     if theme ~= '' then ui.theme = theme end
 
     if ui.layout ~= 'slots' and ui.layout ~= 'grid' then
@@ -350,6 +355,7 @@ do
     ui.grid.allowRotate = ui.grid.allowRotate ~= false
     ui.clothing.enabled = ui.clothing.enabled ~= false
     ui.rarity.enabled = ui.rarity.enabled ~= false
+    ui.dim.enabled = ui.dim.enabled ~= false
 
     if type(ui.rarity.default) ~= 'string' or not ui.rarity.tiers[ui.rarity.default] then
         warn(("unknown default item rarity '%s' - falling back to 'common'"):format(tostring(ui.rarity.default)))

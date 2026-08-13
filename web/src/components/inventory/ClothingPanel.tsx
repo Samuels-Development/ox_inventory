@@ -10,8 +10,12 @@ const ClothingPanel: React.FC = () => {
 
   if (!enabled || slots.length === 0) return null;
 
-  const left = slots.filter((def) => def.side === 'left');
-  const right = slots.filter((def) => def.side !== 'left');
+  const configuredLeft = slots.filter((def) => def.side === 'left');
+  const configuredRight = slots.filter((def) => def.side !== 'left');
+  const lopsided = configuredLeft.length === 0 || configuredRight.length === 0;
+  const half = Math.ceil(slots.length / 2);
+  const left = lopsided ? slots.slice(0, half) : configuredLeft;
+  const right = lopsided ? slots.slice(half) : configuredRight;
 
   const column = (defs: typeof slots, side: 'left' | 'right') => (
     <div className={`clothes-col ${side}`}>
