@@ -95,6 +95,16 @@ grid = {
 
 Keep the two numbers equal and both sides of the screen come out the same size, which is what you want visually. Lower `containerRows` if you would rather stashes held less than the player.
 
+**Sizing one stash differently.** `containerRows` is the default for every container, so on its own it cannot give you a small lockbox and a large warehouse. Pass `gridRows` when registering a stash to override it for that stash alone:
+
+```lua
+exports.ox_inventory:RegisterStash('lockbox', 'Lockbox', 50, 100000, nil, nil, nil, {
+    gridRows = 2 -- 2 * columns cells, instead of containerRows * columns
+})
+```
+
+The same key works on entries in `data/stashes.lua`. It is ignored when `layout = 'slots'`, where the stash uses its `slots` count as normal.
+
 > [!WARNING]
 > Switching an existing server from `slots` to `grid` does not reflow inventories that already have items in them. Positions were assigned under the old layout and will overlap. Change it on a fresh database, or expect players to rearrange.
 

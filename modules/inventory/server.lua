@@ -94,7 +94,8 @@ for _, stash in pairs(lib.load('data.stashes') or {}) do
 		maxWeight = stash.weight,
 		groups = stash.groups or stash.jobs,
 		coords = shared.target and stash.target?.loc or stash.coords,
-        distance = stash.distance or 10
+        distance = stash.distance or 10,
+        gridRows = tonumber(stash.gridRows)
 	}
 end
 
@@ -202,7 +203,7 @@ local function loadInventoryData(data, player, ignoreSecurityChecks)
 			inventory = Inventories[owner and ('%s:%s'):format(stash.name, owner) or stash.name]
 
 			if not inventory then
-				inventory = Inventory.Create(stash.name, stash.label or stash.name, 'stash', stash.slots, 0, stash.maxWeight, owner, nil, stash.groups)
+				inventory = Inventory.Create(stash.name, stash.label or stash.name, 'stash', stash.slots, 0, stash.maxWeight, owner, nil, stash.groups, nil, stash.gridRows)
                 inventory.coords = stash.coords
                 inventory.distance = stash.distance
 			end
@@ -586,10 +587,11 @@ end, true)
 ---@param owner string | number | boolean
 ---@param items? table
 ---@param dbId? string | number
+---@param gridRows? number grid rows for this inventory alone, overriding `containerRows`
 ---@return OxInventory?
 --- This should only be utilised internally!
 --- To create a stash, please use `exports.ox_inventory:RegisterStash` instead.
-function Inventory.Create(id, label, invType, slots, weight, maxWeight, owner, items, groups, dbId)
+function Inventory.Create(id, label, invType, slots, weight, maxWeight, owner, items, groups, dbId, gridRows)
 	if invType == 'player' and hasActiveInventory(id, owner) then return end
 
 	if invType == 'player' then
@@ -597,7 +599,7 @@ function Inventory.Create(id, label, invType, slots, weight, maxWeight, owner, i
 		-- clothing is enabled, so this is a no-op by default.
 		slots = (slots or 0) + Grid.getEquipCount()
 	elseif invType ~= 'shop' and invType ~= 'crafting' then
-		slots = Grid.scaleContainerSlots(slots)
+		slots = Grid.scaleContainerSlots(slots, gridRows)
 	end
 
 	local self = {
@@ -3202,6 +3204,7 @@ end
 ---@param owner? string|number|boolean
 ---@param groups? table<string, number>
 ---@param coords? vector3|table<vector3>
+---@param properties? { gridRows?: number } grid rows for this stash alone, overriding `containerRows`
 --- For simple integration with other resources that want to create valid stashes.
 --- This needs to be triggered before a player can open a stash.
 --- ```
@@ -3212,13 +3215,21 @@ end
 ---
 --- groups: { ['police'] = 0 }
 --- ```
-local function registerStash(name, label, slots, maxWeight, owner, groups, coords)
+local function registerStash(name, label, slots, maxWeight, owner, groups, coords, properties)
 	name, slots, maxWeight, coords = checkStashProperties({
 		name = name,
 		slots = slots,
 		maxWeight = maxWeight,
 		coords = coords,
 	})
+
+	local gridRows = type(properties) == 'table' and tonumber(properties.gridRows) or nil
+
+	if gridRows then
+		gridRows = math.floor(gridRows)
+
+		if gridRows < 1 then gridRows = 1 end
+	end
 
 	local curStash = RegisteredStashes[name]
 
@@ -3230,7 +3241,7 @@ local function registerStash(name, label, slots, maxWeight, owner, groups, coord
 			if stash.type == 'stash' and stash.dbId == name then
 				stash.label = label or stash.label
 				stash.owner = (owner and owner ~= true) and stash.owner or owner
-				stash.slots = slots or stash.slots
+				stash.slots = slots and Grid.scaleContainerSlots(slots, gridRows) or stash.slots
 				stash.maxWeight = maxWeight or stash.maxWeight
 				stash.groups = groups or stash.groups
 				stash.coords = coords or stash.coords
@@ -3245,7 +3256,8 @@ local function registerStash(name, label, slots, maxWeight, owner, groups, coord
 		slots = slots,
 		maxWeight = maxWeight,
 		groups = groups,
-		coords = coords
+		coords = coords,
+		gridRows = gridRows
 	}
 end
 

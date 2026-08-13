@@ -34,8 +34,9 @@ function Grid.isGridLayout()
 end
 
 ---@param slots number?
+---@param rows number? grid rows for this inventory alone, overriding `containerRows`
 ---@return number?
-function Grid.scaleContainerSlots(slots)
+function Grid.scaleContainerSlots(slots, rows)
     local count = tonumber(slots)
 
     if not count or not Grid.isGridLayout() then return slots end
@@ -45,9 +46,13 @@ function Grid.scaleContainerSlots(slots)
 
     if not grid then return slots end
 
-    local rows = tonumber(grid.containerRows)
+    local override = tonumber(rows)
 
-    if rows then return floor(math.max(1, rows)) * Grid.getColumns() end
+    if override then return floor(math.max(1, override)) * Grid.getColumns() end
+
+    local containerRows = tonumber(grid.containerRows)
+
+    if containerRows then return floor(math.max(1, containerRows)) * Grid.getColumns() end
 
     local scale = tonumber(grid.containerScale)
 
