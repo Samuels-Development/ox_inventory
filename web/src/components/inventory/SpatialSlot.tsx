@@ -21,6 +21,7 @@ import { ItemsPayload } from '../../reducers/refreshSlots';
 import { closeTooltip, openTooltip } from '../../store/tooltip';
 import { openContextMenu } from '../../store/contextMenu';
 import { getBooleanPref } from '../../store/preferences';
+import { useFastSlots } from '../../store/fastSlots';
 
 const NEUTRAL_RARITY = 'common';
 
@@ -172,6 +173,10 @@ const SpatialSlot: React.FC<SpatialSlotProps> = ({
     }
   };
 
+  const bindings = useFastSlots();
+
+  const fastSlot = inventoryType === 'player' ? bindings.indexOf(item.slot) + 1 || undefined : undefined;
+
   const rarity = useMemo(() => getItemRarity(item), [item]);
   const rarityKey = useMemo(() => getItemRarityKey(item), [item]);
   const hasRarityAccent = rarityKey !== undefined && rarityKey !== NEUTRAL_RARITY;
@@ -214,7 +219,7 @@ const SpatialSlot: React.FC<SpatialSlotProps> = ({
 
         <ItemImage src={getItemUrl(item)} className="inventory-slot-image" />
 
-        {inventoryType === 'player' && item.slot <= 5 && <div className="inventory-slot-number">{item.slot}</div>}
+        {fastSlot !== undefined && <div className="inventory-slot-number">{fastSlot}</div>}
 
         <div className="inventory-slot-count">
           <span>{formatSlotWeight(item.weight)}</span>

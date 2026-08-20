@@ -23,6 +23,29 @@
   gap: var(--ox-gap);
 }
 
+.fast-slot-panel {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  width: auto;
+  border-radius: var(--ox-radius-md);
+  background-color: var(--ox-panel-fill);
+
+  > .fast-slot-wrapper {
+    width: auto;
+    padding: #{tokens.ui(0.8333)} #{tokens.ui(1.1111)} 0;
+  }
+
+  > .first-five-slots-container {
+    padding: #{tokens.ui(0.8333)} #{tokens.ui(1.1111)};
+    flex-wrap: wrap;
+  }
+}
+
 .hotbar-wrapper {
   position: fixed;
   inset: 0;

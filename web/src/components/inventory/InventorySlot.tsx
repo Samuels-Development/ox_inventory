@@ -185,8 +185,10 @@ const InventorySlot: React.ForwardRefRenderFunction<HTMLDivElement, SlotProps> =
 
           <ItemImage src={getItemUrl(item as SlotWithItem)} className="inventory-slot-image" />
 
-          {/* Hotbar slot number - top left */}
-          {inventoryType === 'player' && item.slot <= 5 && <div className="inventory-slot-number">{item.slot}</div>}
+          {/* Fast slot number - top left. The slots layout binds keys 1-5 to the first five slots. */}
+          {inventoryType === 'player' && item.slot <= 5 && (
+            <div className="inventory-slot-number">{item.slot}</div>
+          )}
 
           <div className="inventory-slot-count">
             <span className="inventory-slot-weight">{formatSlotWeight(item.weight)}</span>

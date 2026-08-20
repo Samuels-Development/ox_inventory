@@ -101,6 +101,14 @@ const mergeGrid = (grid?: Partial<UiConfigShape['grid']>): UiConfigShape['grid']
   allowRotate: typeof grid?.allowRotate === 'boolean' ? grid.allowRotate : UiConfig.grid.allowRotate,
 });
 
+const mergeHotbar = (hotbar?: Partial<UiConfigShape['hotbar']>): UiConfigShape['hotbar'] => {
+  const count = typeof hotbar?.count === 'number' && hotbar.count > 0 ? Math.floor(hotbar.count) : 0;
+
+  if (!hotbar?.enabled || count < 1) return { enabled: false, count: 0 };
+
+  return { enabled: true, count };
+};
+
 const mergeClothing = (clothing?: Partial<UiConfigShape['clothing']>): UiConfigShape['clothing'] => {
   const slots = Array.isArray(clothing?.slots) ? (clothing?.slots as ClothingSlotDef[]) : UiConfig.clothing.slots;
 
@@ -160,6 +168,7 @@ export const setUiConfig = (cfg?: UiConfigMessage) => {
     UiConfig = {
       layout: isLayoutMode(cfg.layout) ? cfg.layout : UiConfig.layout,
       grid: mergeGrid(cfg.grid),
+      hotbar: mergeHotbar(cfg.hotbar),
       clothing: mergeClothing(cfg.clothing),
       rarity: mergeRarity(cfg.rarity),
       dim: mergeDim(cfg.dim),

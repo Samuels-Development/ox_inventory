@@ -105,17 +105,36 @@ export const hasPlayerSlotLayout = (type: Inventory['type']): boolean =>
 export const getBaseSlotCount = (inventory: Pick<Inventory, 'slots' | 'type'>): number => {
   let count = Math.max(0, Math.floor(inventory.slots) || 0);
 
-  if (!UiConfig.clothing.enabled || !hasPlayerSlotLayout(inventory.type)) return count;
+  if (!hasPlayerSlotLayout(inventory.type)) return count;
 
-  const defs = UiConfig.clothing.slots;
+  if (UiConfig.clothing.enabled) {
+    const defs = UiConfig.clothing.slots;
 
-  for (let i = 0; i < defs.length; i++) {
-    const index = defs[i].index;
+    for (let i = 0; i < defs.length; i++) {
+      const index = defs[i].index;
 
-    if (index > 0 && index - 1 < count) count = index - 1;
+      if (index > 0 && index - 1 < count) count = index - 1;
+    }
   }
 
   return count;
+};
+
+export const hasFastSlotBindings = (type: Inventory['type']): boolean =>
+  UiConfig.hotbar.enabled && UiConfig.hotbar.count > 0 && type === InventoryType.PLAYER;
+
+export const getFastSlotItems = (items: Slot[], bindings: readonly number[]): Slot[] => {
+  const { count } = UiConfig.hotbar;
+  const slots: Slot[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const slot = bindings[i];
+    const item = slot ? items[slot - 1] : undefined;
+
+    slots.push(item?.name ? item : { slot: 0 });
+  }
+
+  return slots;
 };
 
 export const findAvailableSlot = (item: Slot, data: ItemData, items: Slot[]) => {

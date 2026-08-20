@@ -6,6 +6,7 @@ import { Locale } from './store/locale';
 import { setImagePath } from './store/imagepath';
 import { setUiConfig } from './store/uiConfig';
 import { setPrefs } from './store/preferences';
+import { setFastSlots } from './store/fastSlots';
 import { setupInventory } from './store/inventory';
 import { Inventory, UiConfigMessage } from './typings';
 import { useAppDispatch } from './store';
@@ -211,15 +212,19 @@ const App: React.FC = () => {
     imagepath: string;
     uiConfig?: UiConfigMessage;
     backpackInventory?: Inventory;
-  }>('init', ({ locale, items, leftInventory, imagepath, uiConfig, backpackInventory }) => {
+    fastSlots?: number[];
+  }>('init', ({ locale, items, leftInventory, imagepath, uiConfig, backpackInventory, fastSlots }) => {
     for (const name in locale) Locale[name] = locale[name];
     for (const name in items) Items[name] = items[name];
 
     setImagePath(imagepath);
     setUiConfig(uiConfig);
     setPrefs(uiConfig?.prefs);
+    setFastSlots(fastSlots);
     dispatch(setupInventory({ leftInventory, backpackInventory }));
   });
+
+  useNuiEvent<number[]>('setFastSlots', setFastSlots);
 
   fetchNui('uiLoaded', {});
 

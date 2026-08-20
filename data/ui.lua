@@ -33,6 +33,11 @@ return {
         },
     },
 
+    hotbar = {
+        enabled = true,
+        slots = 5,
+    },
+
     clothing = {
         enabled = true,
         -- display order; `side` places the slot column left or right of the ped

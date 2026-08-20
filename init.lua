@@ -265,6 +265,10 @@ do
                 tint      = { 1, 1 },
             },
         },
+        hotbar = {
+            enabled = true,
+            slots = 5,
+        },
         clothing = {
             enabled = true,
             slots = {
@@ -323,6 +327,7 @@ do
         end
     end
 
+    if type(ui.hotbar) ~= 'table' then ui.hotbar = default.hotbar end
     if type(ui.grid.defaults) ~= 'table' then ui.grid.defaults = default.grid.defaults end
     if type(ui.grid.defaultSize) ~= 'table' then ui.grid.defaultSize = default.grid.defaultSize end
     if type(ui.clothing.slots) ~= 'table' then ui.clothing.slots = default.clothing.slots end
@@ -331,6 +336,7 @@ do
     local layout = GetConvar('inventory:layout', '')
     local gridcolumns = GetConvarInt('inventory:gridcolumns', 0)
     local clothing = GetConvarInt('inventory:clothing', -1)
+    local hotbar = GetConvarInt('inventory:hotbar', -1)
     local rarity = GetConvarInt('inventory:rarity', -1)
     local dim = GetConvarInt('inventory:dim', -1)
     local theme = GetConvar('inventory:theme', '')
@@ -338,6 +344,7 @@ do
     if layout ~= '' then ui.layout = layout end
     if gridcolumns > 0 then ui.grid.columns = gridcolumns end
     if clothing >= 0 then ui.clothing.enabled = clothing == 1 end
+    if hotbar >= 0 then ui.hotbar.enabled = hotbar == 1 end
     if rarity >= 0 then ui.rarity.enabled = rarity == 1 end
 
     if type(ui.dim) ~= 'table' then ui.dim = {} end
@@ -354,6 +361,10 @@ do
     ui.grid.columns = columns < 5 and 5 or columns > 14 and 14 or columns
     ui.grid.allowRotate = ui.grid.allowRotate ~= false
     ui.clothing.enabled = ui.clothing.enabled ~= false
+    ui.hotbar.enabled = ui.hotbar.enabled ~= false
+
+    local hotbarSlots = math.floor(tonumber(ui.hotbar.slots) or default.hotbar.slots)
+    ui.hotbar.slots = hotbarSlots < 0 and 0 or hotbarSlots > 5 and 5 or hotbarSlots
     ui.rarity.enabled = ui.rarity.enabled ~= false
     ui.dim.enabled = ui.dim.enabled ~= false
 
@@ -481,6 +492,7 @@ do
     shared.ui = ui
     ---Number of equipment slots appended after `shared.playerslots`; 0 when clothing is disabled.
     shared.equipslots = ui.clothing.enabled and #slots or 0
+    shared.fastslots = (ui.layout == 'grid' and ui.hotbar.enabled) and ui.hotbar.slots or 0
     shared.totalplayerslots = shared.playerslots + shared.equipslots
 end
 

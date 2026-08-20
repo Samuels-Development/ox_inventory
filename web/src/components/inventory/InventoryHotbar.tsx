@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { getItemUrl, isSlotWithItem } from '../../helpers';
+import { getFastSlotItems, getItemUrl, hasFastSlotBindings, isSlotWithItem } from '../../helpers';
 import useNuiEvent from '../../hooks/useNuiEvent';
 import { Items } from '../../store/items';
 import WeightBar from '../utils/WeightBar';
@@ -8,6 +8,7 @@ import { useAppSelector } from '../../store';
 import { selectLeftInventory } from '../../store/inventory';
 import { SlotWithItem } from '../../typings';
 import { getBooleanPref, getNumberPref, PREF_CHANGE_EVENT } from '../../store/preferences';
+import { useFastSlots } from '../../store/fastSlots';
 
 export const HOTBAR_KEYBIND_COUNT = 5;
 
@@ -30,7 +31,12 @@ export const useFastSlotCount = (): number => useSyncExternalStore(subscribeToPr
 const InventoryHotbar: React.FC = () => {
   const [hotbarVisible, setHotbarVisible] = useState(false);
   const fastSlotCount = useFastSlotCount();
-  const items = useAppSelector(selectLeftInventory).items.slice(0, fastSlotCount);
+  const leftInventory = useAppSelector(selectLeftInventory);
+  const bindings = useFastSlots();
+  const useBindings = hasFastSlotBindings(leftInventory.type);
+  const items = useBindings
+    ? getFastSlotItems(leftInventory.items, bindings).slice(0, fastSlotCount)
+    : leftInventory.items.slice(0, fastSlotCount);
   const hideTimer = useRef<number | null>(null);
 
   const clearHideTimer = useCallback(() => {
@@ -62,13 +68,13 @@ const InventoryHotbar: React.FC = () => {
   return (
     <div className={`hotbar-wrapper ${hotbarVisible ? 'hotbar-visible' : ''}`}>
       <div className="hotbar-container">
-        {items.map((item) => (
+        {items.map((item, index) => (
           <div
             className={`hotbar-item-slot ${isSlotWithItem(item) ? '' : 'hotbar-slot-empty'}`}
-            key={`hotbar-${item.slot}`}
+            key={`hotbar-${useBindings ? index : item.slot}`}
           >
             <div className="hotbar-slot-noise" />
-            <div className="hotbar-slot-number">{item.slot}</div>
+            <div className="hotbar-slot-number">{useBindings ? index + 1 : item.slot}</div>
 
             {isSlotWithItem(item) && (
               <div className="hotbar-item-wrapper">

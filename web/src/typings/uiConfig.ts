@@ -28,6 +28,7 @@ export interface ThemeColors {
 export interface UiConfig {
   layout: LayoutMode;
   grid: { columns: number; allowRotate: boolean };
+  hotbar: { enabled: boolean; count: number };
   clothing: { enabled: boolean; slots: ClothingSlotDef[] };
   rarity: { enabled: boolean; default: string; tiers: Record<string, RarityTier> };
   dim: { enabled: boolean };
@@ -46,6 +47,10 @@ export const DEFAULT_UI_CONFIG: UiConfig = {
   grid: {
     columns: 10,
     allowRotate: true,
+  },
+  hotbar: {
+    enabled: false,
+    count: 0,
   },
   clothing: {
     enabled: false,

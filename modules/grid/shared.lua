@@ -117,10 +117,31 @@ function Grid.getEquipStart()
     return normalSlotCount() + 1
 end
 
----Total slot count of a player inventory, including equipment slots.
+---@return number
+function Grid.getFastSlotCount()
+    local count = type(shared) == 'table' and tonumber(shared.fastslots) or nil
+
+    return count and floor(count) or 0
+end
+
+---@param index any
+---@return boolean
+function Grid.isFastSlot(index)
+    local count = Grid.getFastSlotCount()
+
+    if count == 0 or type(index) ~= 'number' or index % 1 ~= 0 then return false end
+
+    return index >= 1 and index <= count
+end
+
+---@return number
+function Grid.getReservedCount()
+    return Grid.getEquipCount()
+end
+
 ---@return number
 function Grid.getPlayerSlots()
-    return normalSlotCount() + Grid.getEquipCount()
+    return normalSlotCount() + Grid.getReservedCount()
 end
 
 ---@param slot any
@@ -181,7 +202,6 @@ function Grid.canEquip(inv, slot, item)
     return false, 'cannot_equip'
 end
 
----Number of slots that belong to the item grid, i.e. excluding equipment slots.
 ---@param inv table?
 ---@return number
 function Grid.getBaseSlots(inv)
@@ -191,7 +211,7 @@ function Grid.getBaseSlots(inv)
 
     if total < 1 then return 0 end
 
-    if inv.type == 'player' and Grid.getEquipCount() > 0 then
+    if inv.type == 'player' and Grid.getReservedCount() > 0 then
         local base = normalSlotCount()
 
         return total < base and total or base

@@ -321,6 +321,14 @@ local function settingsOwner(inv)
 	return owner
 end
 
+---@type table<string, table>
+local settingsCache = {}
+
+---@param owner string?
+function server.forgetSettings(owner)
+	if type(owner) == 'string' then settingsCache[owner] = nil end
+end
+
 ---@param inv OxInventory?
 ---@return table settings
 local function loadSettings(inv)
@@ -328,11 +336,59 @@ local function loadSettings(inv)
 
 	if not owner then return {} end
 
+	local cached = settingsCache[owner]
+
+	if cached then return cached end
+
 	local success, settings = pcall(db.loadSettings, owner)
 
-	if not success or type(settings) ~= 'table' then return {} end
+	settings = (success and type(settings) == 'table') and settings or {}
+	settingsCache[owner] = settings
 
 	return settings
+end
+
+local MAX_FAST_SLOTS = 5
+local MAX_BOUND_SLOT = 4096
+
+---@param list any sparse map of fast slot index to inventory slot
+---@return table? dense array, 0 where nothing is bound
+local function encodeFastSlots(list)
+	if type(list) ~= 'table' then return end
+
+	local encoded = table.create(MAX_FAST_SLOTS, 0)
+	local bound = false
+
+	for i = 1, MAX_FAST_SLOTS do
+		local slot = list[i]
+
+		if type(slot) == 'number' and slot % 1 == 0 and slot > 0 and slot <= MAX_BOUND_SLOT then
+			encoded[i] = slot
+			bound = true
+		else
+			encoded[i] = 0
+		end
+	end
+
+	return bound and encoded or nil
+end
+
+---@param encoded any
+---@return table? sparse map of fast slot index to inventory slot
+local function decodeFastSlots(encoded)
+	if type(encoded) ~= 'table' then return end
+
+	local list = {}
+
+	for i = 1, MAX_FAST_SLOTS do
+		local slot = encoded[i]
+
+		if type(slot) == 'number' and slot % 1 == 0 and slot > 0 and slot <= MAX_BOUND_SLOT then
+			list[i] = slot
+		end
+	end
+
+	return next(list) and list or nil
 end
 
 ---Resolves the theme sent in the `init` payload. Always returns a usable theme.
@@ -386,10 +442,26 @@ local function writeSettings(inv, patch)
 	end
 
 	blob.prefs = prefs
+	blob.fastSlots = patch.fastSlots and encodeFastSlots(patch.fastSlots) or encodeFastSlots(decodeFastSlots(existing.fastSlots))
+
+	settingsCache[owner] = blob
 
 	local success, saved = pcall(db.saveSettings, owner, blob)
 
 	return success and saved == true
+end
+
+---@param inv OxInventory?
+---@return table? bindings
+function server.loadFastSlots(inv)
+	return decodeFastSlots(loadSettings(inv).fastSlots)
+end
+
+---@param inv OxInventory?
+---@param list table bindings
+---@return boolean
+function server.saveFastSlots(inv, list)
+	return writeSettings(inv, { fastSlots = list })
 end
 
 ---@param source number
@@ -407,6 +479,23 @@ lib.callback.register('ox_inventory:saveTheme', function(source, data)
 	if not name then return false end
 
 	return writeSettings(inv, { theme = { name = name, colors = colors } })
+end)
+
+---@param source number
+---@param data { index: number, slot: number? }
+---@return boolean
+lib.callback.register('ox_inventory:setFastSlot', function(source, data)
+	if type(data) ~= 'table' then return false end
+
+	local inv = Inventory(source)
+
+	if not inv or not inv.player then return false end
+
+	local index = tonumber(data.index)
+
+	if not index then return false end
+
+	return Inventory.SetFastSlot(inv, index, data.slot ~= nil and tonumber(data.slot) or nil)
 end)
 
 ---@param source number
@@ -484,7 +573,9 @@ function server.setPlayerInventory(player, data)
 		local theme = resolveTheme(settings)
 		local prefs = resolvePrefs(settings)
 
-		TriggerClientEvent('ox_inventory:setPlayerInventory', player.source, Inventory.Drops, inventory, totalWeight, inv.player, theme, prefs)
+		Inventory.RestoreFastSlots(inv, server.loadFastSlots(inv))
+
+		TriggerClientEvent('ox_inventory:setPlayerInventory', player.source, Inventory.Drops, inventory, totalWeight, inv.player, theme, prefs, Inventory.GetFastSlots(inv))
 	end
 end
 exports('setPlayerInventory', server.setPlayerInventory)

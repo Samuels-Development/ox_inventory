@@ -376,6 +376,239 @@ local function minimal(inv)
 end
 
 ---@param inv OxInventory?
+---@return table? bindings
+local function fastSlots(inv)
+	if type(inv) ~= 'table' or inv.type ~= 'player' then return end
+	if Grid.getFastSlotCount() == 0 then return end
+
+	local list = inv.fastSlots
+
+	if not list then
+		list = {}
+		inv.fastSlots = list
+	end
+
+	return list
+end
+
+---@param list table
+---@param slot number
+---@return number? index
+local function fastSlotIndexOf(list, slot)
+	for index, bound in pairs(list) do
+		if bound == slot then return index end
+	end
+end
+
+---@param inv OxInventory
+local function syncFastSlots(inv)
+	inv.fastSlotsChanged = true
+
+	TriggerClientEvent('ox_inventory:setFastSlots', inv.id, inv.fastSlots or {})
+end
+
+---@param inv OxInventory?
+---@param fromSlot number
+---@param toSlot number?
+local function moveFastSlot(inv, fromSlot, toSlot)
+	local list = type(inv) == 'table' and inv.type == 'player' and inv.fastSlots or nil
+
+	if not list then return end
+
+	local index = fastSlotIndexOf(list, fromSlot)
+
+	if not index then return end
+
+	if toSlot and fastSlotIndexOf(list, toSlot) then toSlot = nil end
+
+	list[index] = toSlot
+
+	syncFastSlots(inv)
+end
+
+---@param inv OxInventory?
+---@param sync boolean?
+---@return boolean changed
+local function pruneFastSlots(inv, sync)
+	local list = type(inv) == 'table' and inv.type == 'player' and inv.fastSlots or nil
+
+	if not list then return false end
+
+	local changed = false
+	local baseSlots = Grid.getBaseSlots(inv)
+
+	for index, slot in pairs(list) do
+		if not Grid.isFastSlot(index) or not Grid.isSlotId(slot, baseSlots) or not inv.items[slot] then
+			list[index] = nil
+			changed = true
+		end
+	end
+
+	if changed and sync then syncFastSlots(inv) end
+
+	return changed
+end
+
+---@param fromInventory OxInventory
+---@param toInventory OxInventory
+---@param data SwapSlotData
+---@param action string 'swap' | 'stack' | 'move'
+---@param vacated boolean the source stack left the source slot entirely
+local function rebindAfterSwap(fromInventory, toInventory, data, action, vacated)
+	local fromList = fromInventory.type == 'player' and fromInventory.fastSlots or nil
+	local toList = toInventory.type == 'player' and toInventory.fastSlots or nil
+
+	if not fromList and not toList then return end
+
+	local sameInventory = fromInventory.id == toInventory.id
+	local fromIndex = fromList and fastSlotIndexOf(fromList, data.fromSlot) or nil
+	local toIndex = toList and fastSlotIndexOf(toList, data.toSlot) or nil
+
+	if not fromIndex and not toIndex then return end
+
+	if action == 'swap' then
+		if sameInventory then
+			if fromIndex then fromList[fromIndex] = data.toSlot end
+			if toIndex then toList[toIndex] = data.fromSlot end
+
+			return syncFastSlots(fromInventory)
+		end
+
+		if fromIndex then
+			fromList[fromIndex] = nil
+			syncFastSlots(fromInventory)
+		end
+
+		if toIndex then
+			toList[toIndex] = nil
+			syncFastSlots(toInventory)
+		end
+
+		return
+	end
+
+	if not fromIndex or not vacated then return end
+
+	moveFastSlot(fromInventory, data.fromSlot, sameInventory and data.toSlot or nil)
+end
+
+---@param inv OxInventory
+local function reclaimStrandedSlots(inv)
+	local list = fastSlots(inv)
+
+	if not list then return end
+
+	local total = inv.slots
+	local stranded, count = {}, 0
+
+	for slot, item in pairs(inv.items) do
+		if slot > total then
+			count += 1
+			stranded[count] = { band = slot - total, slot = slot, item = item }
+		end
+	end
+
+	if count == 0 then return end
+
+	table.sort(stranded, function(a, b) return a.band < b.band end)
+
+	local gridLayout = Grid.isGridLayout()
+	local layout = gridLayout and Grid.getLayout(inv) or nil
+	local baseSlots = Grid.getBaseSlots(inv)
+
+	for i = 1, count do
+		local entry = stranded[i]
+		local item = entry.item
+		local width, height = Grid.getItemSize(Grid.getItem(item.name), item.metadata)
+
+		for target = 1, baseSlots do
+			if not inv.items[target] and (not layout or Grid.fits(layout, target, width, height)) then
+				inv.items[entry.slot] = nil
+				item.slot = target
+				inv.items[target] = item
+
+				if layout then Grid.mark(layout, target, width, height) end
+				if Grid.isFastSlot(entry.band) then list[entry.band] = target end
+
+				inv.changed = true
+				inv.fastSlotsChanged = true
+				break
+			end
+		end
+
+		if inv.items[entry.slot] then
+			warn(("no room to reclaim %sx %s from the removed hotbar band for '%s'; it stays hidden until a cell frees up"):format(item.count, item.name, tostring(inv.owner)))
+		end
+	end
+end
+
+---@param inv OxInventory
+local function saveFastSlots(inv)
+	if not inv.fastSlotsChanged or inv.type ~= 'player' or not server.saveFastSlots then return end
+
+	inv.fastSlotsChanged = false
+
+	server.saveFastSlots(inv, inv.fastSlots or {})
+end
+
+---@param inv OxInventory?
+---@return table bindings a copy, safe to hand out
+function Inventory.GetFastSlots(inv)
+	local list = fastSlots(Inventory(inv))
+
+	return list and table.clone(list) or {}
+end
+
+exports('GetFastSlots', Inventory.GetFastSlots)
+
+---@param inv inventory
+---@param index number fast slot, 1-based
+---@param slot number? grid slot holding the stack to bind
+---@return boolean success
+function Inventory.SetFastSlot(inv, index, slot)
+	inv = Inventory(inv) --[[@as OxInventory]]
+
+	local list = fastSlots(inv)
+
+	if not list or not Grid.isFastSlot(index) then return false end
+
+	if slot ~= nil then
+		if not Grid.isSlotId(slot, Grid.getBaseSlots(inv)) or not inv.items[slot] then return false end
+
+		local existing = fastSlotIndexOf(list, slot)
+
+		if existing == index then return true end
+		if existing then list[existing] = nil end
+	elseif list[index] == nil then
+		return false
+	end
+
+	list[index] = slot
+
+	syncFastSlots(inv)
+
+	return true
+end
+
+exports('SetFastSlot', Inventory.SetFastSlot)
+
+---@param inv OxInventory?
+---@param list table?
+function Inventory.RestoreFastSlots(inv, list)
+	if not fastSlots(inv) then return end
+
+	local restored = type(list) == 'table' and next(list) ~= nil
+
+	if restored then inv.fastSlots = list end
+
+	local pruned = pruneFastSlots(inv, false)
+
+	if restored and not pruned then inv.fastSlotsChanged = false end
+end
+
+Inventory.ClearFastSlot = function(inv, slot) moveFastSlot(inv, slot, nil) end
+
+---@param inv OxInventory?
 local function refreshBackpackDeferred(inv)
 	if not Inventory.RefreshBackpack(inv) then return end
 
@@ -417,6 +650,8 @@ function Inventory.SetSlot(inv, item, count, metadata, slot)
 	inv.weight = newWeight
 	inv.items[slot] = currentSlot
 	inv.changed = true
+
+	if not currentSlot then moveFastSlot(inv, slot, nil) end
 
 	if slot == Inventory.GetBackpackSlot() then refreshBackpackDeferred(inv) end
 	if slot == Inventory.GetBeltSlot() then Inventory.RefreshBelt(inv) end
@@ -595,9 +830,7 @@ function Inventory.Create(id, label, invType, slots, weight, maxWeight, owner, i
 	if invType == 'player' and hasActiveInventory(id, owner) then return end
 
 	if invType == 'player' then
-		-- Equipment slots are appended after the normal player slots; the count is 0 unless
-		-- clothing is enabled, so this is a no-op by default.
-		slots = (slots or 0) + Grid.getEquipCount()
+		slots = (slots or 0) + Grid.getReservedCount()
 	elseif invType ~= 'shop' and invType ~= 'crafting' then
 		slots = Grid.scaleContainerSlots(slots, gridRows)
 	end
@@ -646,6 +879,8 @@ function Inventory.Create(id, label, invType, slots, weight, maxWeight, owner, i
 	Inventories[self.id] = setmetatable(self, OxInventory)
 
 	if invType == 'player' then
+		reclaimStrandedSlots(Inventories[self.id])
+
 		-- The worn bag has to be resolved before the inventory is handed out; it is the only
 		-- source of truth for the `backpack` swap endpoint. No-op unless clothing is enabled.
 		Inventory.RefreshBackpack(Inventories[self.id])
@@ -746,6 +981,8 @@ function Inventory.Save(inv)
 
     local data = next(buffer) and json.encode(buffer) or nil
     inv.changed = false
+
+    saveFastSlots(inv)
 
     if inv.player then
         return shared.framework ~= 'esx' and db.savePlayer(inv.owner, data)
@@ -1598,6 +1835,7 @@ function Inventory.RemoveItem(inv, item, count, metadata, slot, ignoreTotal, str
 					removed = total
 					inv.weight -= inv.items[k].weight
 					inv.items[k] = nil
+					moveFastSlot(inv, k, nil)
 					slots[#slots+1] = inv.items[k] or k
 				elseif v > count then
 					Inventory.SetSlot(inv, item, -count, inv.items[k].metadata, k)
@@ -1611,6 +1849,7 @@ function Inventory.RemoveItem(inv, item, count, metadata, slot, ignoreTotal, str
 					count = count - v
 					inv.weight -= inv.items[k].weight
 					inv.items[k] = nil
+					moveFastSlot(inv, k, nil)
 					slots[#slots+1] = k
 				end
 			else break end
@@ -1888,6 +2127,8 @@ local function dropItem(source, playerInventory, fromInventory, fromData, data)
 	fromInventory.weight -= toData.weight
 	fromInventory.items[slot] = fromData
 
+	if not fromData then moveFastSlot(fromInventory, slot, nil) end
+
 	if ownSource and slot == playerInventory.weapon then
 		playerInventory.weapon = nil
 	end
@@ -1958,11 +2199,14 @@ local function canSwapSlots(fromInventory, toInventory, fromData, toData, data, 
 
 	if not Grid.isGridLayout() then return true end
 
+	local toReserved = toEquip
+	local fromReserved = fromEquip
+
 	local sameInventory = fromInventory.id == toInventory.id
 
 	local vacatesSource = toData ~= nil or data.count >= fromData.count
 
-	if not toEquip then
+	if not toReserved then
 		local ignore = { [data.toSlot] = true }
 
 		if sameInventory and vacatesSource then ignore[data.fromSlot] = true end
@@ -1970,7 +2214,7 @@ local function canSwapSlots(fromInventory, toInventory, fromData, toData, data, 
 		if not Grid.canPlace(toInventory, data.toSlot, width, height, ignore) then return false end
 	end
 
-	if toData and not fromEquip then
+	if toData and not fromReserved then
 		-- A displaced item lands in the slot being vacated, so its footprint has to fit there.
 		local toWidth, toHeight = Grid.getItemSize(Items(toData.name), toData.metadata)
 		local ignore = { [data.fromSlot] = true }
@@ -1980,8 +2224,7 @@ local function canSwapSlots(fromInventory, toInventory, fromData, toData, data, 
 
 			local layout = Grid.getLayout(fromInventory, ignore)
 
-			-- An equipment destination is outside the cell matrix, so nothing is placed there.
-			if not toEquip then Grid.mark(layout, data.toSlot, width, height) end
+			if not toReserved then Grid.mark(layout, data.toSlot, width, height) end
 
 			-- `Grid.fits` repeats the bounds guard `Grid.canPlace` would have applied:
 			-- `layout.slots` is `Grid.getBaseSlots(fromInventory)` by construction.
@@ -2365,6 +2608,8 @@ lib.callback.register('ox_inventory:swapItems', function(source, data)
 			fromInventory.items[data.fromSlot] = fromData
 			toInventory.items[data.toSlot] = toData
 
+			rebindAfterSwap(fromInventory, toInventory, data, hookPayload.action or 'move', fromData == nil)
+
 			if fromInventory.changed ~= nil then fromInventory.changed = true end
 			if toInventory.changed ~= nil then toInventory.changed = true end
 
@@ -2603,6 +2848,8 @@ function Inventory.Clear(inv, keep)
 	inv.weight = newWeight
 	inv.changed = true
 
+	pruneFastSlots(inv, true)
+
 	inv:syncSlotsWithClients(updateSlots, true)
 
 	if not inv.player then
@@ -2806,6 +3053,8 @@ exports('GetItemCount', Inventory.GetItemCount)
 ---@return integer?
 ---@return InventorySaveData?
 local function prepareInventorySave(inv, buffer, time)
+    saveFastSlots(inv)
+
     local shouldSave = not inv.datastore and inv.changed
     local n = 0
 

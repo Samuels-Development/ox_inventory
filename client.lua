@@ -5,6 +5,7 @@ require 'modules.interface.client'
 
 local Utils = require 'modules.utils.client'
 local Weapon = require 'modules.weapon.client'
+local Grid = require 'modules.grid.shared'
 local currentWeapon
 
 exports('getCurrentWeapon', function()
@@ -357,6 +358,36 @@ end
 
 RegisterNetEvent('ox_inventory:openInventory', client.openInventory)
 exports('openInventory', client.openInventory)
+
+local fastSlots = {}
+
+---@param list table?
+local function assignFastSlots(list)
+	table.wipe(fastSlots)
+
+	if type(list) ~= 'table' then return end
+
+	for index, slot in pairs(list) do
+		if type(index) == 'number' and type(slot) == 'number' and slot > 0 then fastSlots[index] = slot end
+	end
+end
+
+---@return number[] dense array, 0 where nothing is bound. A sparse table would reach the UI as a
+local function serialiseFastSlots()
+	local count = Grid.getFastSlotCount()
+	local list = table.create(count, 0)
+
+	for i = 1, count do list[i] = fastSlots[i] or 0 end
+
+	return list
+end
+
+RegisterNetEvent('ox_inventory:setFastSlots', function(list)
+	if source == '' then return end
+
+	assignFastSlots(list)
+	SendNUIMessage({ action = 'setFastSlots', data = serialiseFastSlots() })
+end)
 
 RegisterNetEvent('ox_inventory:forceOpenInventory', function(left, right)
 	if source == '' then return end
@@ -915,7 +946,13 @@ local function registerCommands()
 			defaultKey = tostring(i),
 			onPressed = function()
 				if invOpen or EnableWeaponWheel or not invHotkeys or IsNuiFocused() then return end
-				useSlot(i)
+
+				if Grid.getFastSlotCount() == 0 then return useSlot(i) end
+				if not Grid.isFastSlot(i) then return end
+
+				local slot = fastSlots[i]
+
+				if slot then useSlot(slot) end
 			end
 		})
 	end
@@ -1246,7 +1283,8 @@ end)
 
 ---@param playerTheme { name: string, colors: table }? the character's saved theme, resolved and
 ---@param playerPrefs table? the character's saved interface preference *overrides*, validated
-RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inventory, weight, player, playerTheme, playerPrefs)
+---@param playerFastSlots table? the character's saved fast slot bindings, already pruned of any
+RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inventory, weight, player, playerTheme, playerPrefs, playerFastSlots)
 	if source == '' then return end
 
     ---@class PlayerData
@@ -1265,6 +1303,8 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 			end
 		end
 	})
+
+	assignFastSlots(playerFastSlots)
 
 	if setStateBagHandler then setStateBagHandler(('player:%s'):format(cache.serverId)) end
 
@@ -1419,6 +1459,7 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 			items = ItemData,
 			leftInventory = {
 				id = cache.playerId,
+				type = 'player',
 				slots = shared.totalplayerslots,
 				items = PlayerData.inventory,
 				maxWeight = shared.playerweight,
@@ -1426,6 +1467,7 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 			-- Omitted entirely when no bag is worn; the server pushed this before the event that
 			-- got us here.
 			backpackInventory = backpackInventory,
+			fastSlots = serialiseFastSlots(),
 			imagepath = client.imagepath,
 			uiConfig = {
 				layout = ui.layout,
@@ -1436,6 +1478,10 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 				clothing = {
 					enabled = ui.clothing.enabled,
 					slots = clothingSlots,
+				},
+				hotbar = {
+					enabled = shared.fastslots > 0,
+					count = shared.fastslots,
 				},
 				rarity = {
 					enabled = ui.rarity.enabled,
@@ -1750,6 +1796,21 @@ RegisterNUICallback('savePrefs', function(data, cb)
 	if type(data) ~= 'table' or type(data.prefs) ~= 'table' then return cb(false) end
 
 	local ok, success = pcall(lib.callback.await, 'ox_inventory:savePrefs', false, { prefs = data.prefs })
+
+	cb(ok and success == true)
+end)
+
+RegisterNUICallback('setFastSlot', function(data, cb)
+	if type(data) ~= 'table' then return cb(false) end
+
+	local index = tonumber(data.index)
+
+	if not index then return cb(false) end
+
+	local ok, success = pcall(lib.callback.await, 'ox_inventory:setFastSlot', false, {
+		index = index,
+		slot = data.slot ~= nil and tonumber(data.slot) or nil,
+	})
 
 	cb(ok and success == true)
 end)

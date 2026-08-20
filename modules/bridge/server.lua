@@ -56,8 +56,12 @@ function server.playerDropped(source)
 	local inv = Inventory(source) --[[@as OxInventory]]
 
 	if inv?.player then
+		local owner = inv.owner
+
 		inv:closeInventory()
 		Inventory.Remove(inv)
+
+		if server.forgetSettings then server.forgetSettings(type(owner) == 'number' and tostring(owner) or owner) end
 	end
 end
 
