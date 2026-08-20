@@ -6,6 +6,7 @@ require 'modules.interface.client'
 local Utils = require 'modules.utils.client'
 local Weapon = require 'modules.weapon.client'
 local Grid = require 'modules.grid.shared'
+local Clothing = require 'modules.clothing.client'
 local currentWeapon
 
 exports('getCurrentWeapon', function()
@@ -1284,7 +1285,8 @@ end)
 ---@param playerTheme { name: string, colors: table }? the character's saved theme, resolved and
 ---@param playerPrefs table? the character's saved interface preference *overrides*, validated
 ---@param playerFastSlots table? the character's saved fast slot bindings, already pruned of any
-RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inventory, weight, player, playerTheme, playerPrefs, playerFastSlots)
+---@param playerWorn table? clothing slot name to item name, for slots configured as wearable
+RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inventory, weight, player, playerTheme, playerPrefs, playerFastSlots, playerWorn)
 	if source == '' then return end
 
     ---@class PlayerData
@@ -1305,6 +1307,7 @@ RegisterNetEvent('ox_inventory:setPlayerInventory', function(currentDrops, inven
 	})
 
 	assignFastSlots(playerFastSlots)
+	Clothing.setWorn(playerWorn)
 
 	if setStateBagHandler then setStateBagHandler(('player:%s'):format(cache.serverId)) end
 

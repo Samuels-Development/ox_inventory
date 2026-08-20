@@ -2630,6 +2630,48 @@ return {
         weight = 200,
     },
 
+    ['flat_cap'] = {
+        label = 'Flat Cap',
+        rarity = 'common',
+        clothing = 'hat',
+        weight = 150,
+        stack = false,
+        close = false,
+        consume = 0,
+        wear = {
+            male   = { prop = 0, drawable = 15, texture = 0 },
+            female = { prop = 0, drawable = 15, texture = 0 },
+        },
+    },
+
+    ['ski_mask'] = {
+        label = 'Ski Mask',
+        rarity = 'uncommon',
+        clothing = 'mask',
+        weight = 120,
+        stack = false,
+        close = false,
+        consume = 0,
+        wear = {
+            male   = { component = 1, drawable = 52, texture = 0 },
+            female = { component = 1, drawable = 52, texture = 0 },
+        },
+    },
+
+    ['work_gloves'] = {
+        label = 'Work Gloves',
+        rarity = 'common',
+        clothing = 'gloves',
+        weight = 100,
+        stack = false,
+        close = false,
+        consume = 0,
+        wear = {
+            male   = { component = 3, drawable = 4, texture = 0 },
+            female = { component = 3, drawable = 6, texture = 0 },
+        },
+    },
+
     ['handcuffs'] = {
         label = 'Handcuffs',
         rarity = 'uncommon',

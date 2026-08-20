@@ -179,6 +179,22 @@ function Grid.getEquipSlotDef(inv, slot)
     return slots and slots[slot - normalSlotCount()]
 end
 
+---@param name any
+---@return boolean
+function Grid.isWearableSlot(name)
+    if type(name) ~= 'string' then return false end
+
+    local slots = Grid.getEquipSlots()
+
+    if not slots then return false end
+
+    for i = 1, #slots do
+        if slots[i].name == name then return slots[i].wearable == true end
+    end
+
+    return false
+end
+
 ---@param inv table?
 ---@param slot any
 ---@param item table? item definition

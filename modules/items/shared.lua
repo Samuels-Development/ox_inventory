@@ -35,6 +35,11 @@ local checkClothing = next(clothingCategories) ~= nil
 local badRarity, badRarityCount = {}, 0
 local badGrid, badGridCount = {}, 0
 local badClothing, badClothingCount = {}, 0
+local badWear, badWearCount = {}, 0
+
+local MAX_DRAWABLE = 512
+local MAX_TEXTURE = 64
+local WEAR_MODELS = { 'male', 'female' }
 
 ---Records a bad value once, returning 1 the first time it is seen and 0 afterwards.
 ---@param set table<string, true>
@@ -63,6 +68,80 @@ local function gridAxis(value, max)
     if value < 1 then return end
 
     return value > max and max or value
+end
+
+---@param value any
+---@param max number
+---@return number?
+local function wearIndex(value, max)
+    value = tonumber(value)
+
+    if not value or value % 1 ~= 0 or value < 0 or value > max then return end
+
+    return value
+end
+
+---@param variant any
+---@return table? one of `{ prop = n, drawable = n, texture = n }` or `{ component = n, ... }`
+local function wearVariant(variant)
+    if type(variant) ~= 'table' then return end
+
+    local prop = wearIndex(variant.prop, MAX_DRAWABLE)
+    local component = prop == nil and wearIndex(variant.component, MAX_DRAWABLE) or nil
+
+    if prop == nil and component == nil then return end
+
+    local drawable = wearIndex(variant.drawable, MAX_DRAWABLE)
+
+    if drawable == nil then return end
+
+    return {
+        prop = prop,
+        component = component,
+        drawable = drawable,
+        texture = wearIndex(variant.texture, MAX_TEXTURE) or 0,
+    }
+end
+
+---@param data OxItem
+local normaliseClothing
+
+---@param data OxItem
+local function normaliseWear(data)
+    local wear = data.wear
+
+    if wear == nil then return end
+
+    if type(wear) ~= 'table' or data.clothing == nil then
+        badWearCount += flagOnce(badWear, data.name)
+        data.wear = nil
+
+        return
+    end
+
+    local shared = wearVariant(wear)
+    local variants = shared and { male = shared, female = shared } or {}
+
+    if not shared then
+        for i = 1, #WEAR_MODELS do
+            local model = WEAR_MODELS[i]
+            local variant = wearVariant(wear[model])
+
+            if variant then variants[model] = variant end
+        end
+    end
+
+    if not variants.male and not variants.female then
+        badWearCount += flagOnce(badWear, data.name)
+        data.wear = nil
+
+        return
+    end
+
+    variants.male = variants.male or variants.female
+    variants.female = variants.female or variants.male
+
+    data.wear = variants
 end
 
 ---@param data OxItem
@@ -102,6 +181,12 @@ local function normaliseItem(data, class)
 
     data.grid = { width, height }
 
+    normaliseClothing(data)
+    normaliseWear(data)
+end
+
+---@param data OxItem
+normaliseClothing = function(data)
     local clothing = data.clothing
 
     if clothing == nil or not checkClothing then return end
@@ -271,6 +356,10 @@ end
 
 if badClothingCount > 0 then
     warn(('%s unknown "clothing" categor(y/ies) ignored: %s'):format(badClothingCount, listKeys(badClothing)))
+end
+
+if badWearCount > 0 then
+    warn(('%s item(s) have an invalid "wear" block and will not be worn: %s'):format(badWearCount, listKeys(badWear)))
 end
 
 return ItemList

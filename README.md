@@ -41,11 +41,12 @@ Everything from upstream ox_inventory still works: items, weapons, shops, stashe
 | | |
 |---|---|
 | **Equipment slots** | Eleven wearable slots around a character figure: hat, glasses, mask, earpiece, torso, armour, backpack, gloves, belt, legs, shoes. Items declare which slot they fit. |
+| **Wearable clothing** | Drag a clothing item into its slot and the player actually puts it on. Take it out and they take it off, going back to whatever they were wearing underneath. |
 | **Backpacks** | Equip a bag in the backpack slot and it opens as a separate panel below the other inventory, working like a stash you carry around with you. It has its own slot count and weight limit, on top of what the player can already carry. |
 | **Item rarities** | Six tiers, from Common to Mythic. Each one tints the item's slot and tooltip so players can see at a glance what is worth picking up. You can sort and filter by rarity. |
 | **Slot or grid inventory** | Pick one. Slots is the classic inventory where every item takes one square, big or small. Grid is a Tarkov style inventory where a rifle takes more room than a sandwich, and items can be rotated to fit. |
 | **Settings panel** | A settings menu inside the inventory. Players change size, spacing, contrast, fonts, tooltips, notifications and colour theme themselves, and their choices are saved to their character. |
-| **Fast slots** | The first five inventory slots shown as a labelled row, used with the number keys. |
+| **Fast slots** | Five slots bound to the number keys. In grid layout you assign any item to one and the item stays in the grid, free to move around; in slots layout they are the first five inventory slots. |
 | **Colour themes** | Seven ready made colour schemes, and players can pick their own colours instead. |
 | **Scales to any resolution** | Sizes are worked out from the screen height rather than fixed pixels, so it looks the same on 1080p, 1440p and ultrawide. |
 
@@ -129,13 +130,15 @@ clothing = {
     enabled = true,
     slots = {
         { name = 'hat',      label = 'Hat',      side = 'left'  },
-        { name = 'backpack', label = 'Backpack', side = 'right' },
-        { name = 'belt',     label = 'Belt',     side = 'right' },
+        { name = 'backpack', label = 'Backpack', side = 'right', wearable = false },
+        { name = 'belt',     label = 'Belt',     side = 'right', wearable = false },
     },
 },
 ```
 
 These are the slots down either side of the character. `side` decides which side a slot appears on, and they appear top to bottom in the order you list them.
+
+`wearable` decides whether putting an item in that slot changes how the player looks. It defaults to **on**, so you only ever write it when you want to turn a slot off. `armour`, `backpack` and `belt` ship with it off, because those slots already do something mechanical and most servers do not want a second thing happening as well. Turn one on and it works exactly like the rest — see [Wearable clothing](#wearable-clothing).
 
 **Adding a slot:**
 
@@ -176,7 +179,7 @@ Set `enabled = false` to remove rarity entirely — no glow, no colours, no ment
 
 ## Defining items
 
-Items live in **`data/items.lua`**. Beyond the stock ox_inventory fields, this fork reads `rarity`, `grid` and `clothing`.
+Items live in **`data/items.lua`**. Beyond the stock ox_inventory fields, this fork reads `rarity`, `grid`, `clothing` and `wear`.
 
 ```lua
 ['trail_backpack'] = {
@@ -197,7 +200,88 @@ Items live in **`data/items.lua`**. Beyond the stock ox_inventory fields, this f
 | `rarity` | One of the tier names from `ui.lua`. Tints the item's slot and tooltip. Leave it out and the item is `common`. |
 | `grid` | How many cells the item takes, as `{ width, height }`. Only matters in grid layout; harmless in slots. |
 | `clothing` | Which equipment slot the item goes in. Use a table like `{ 'hat', 'mask' }` if it fits more than one. Names are checked against `ui.lua` on startup and a wrong one is printed in the server console. |
+| `wear` | What the item looks like once it is in that slot, so the player visibly puts it on. Needs `clothing` as well. See [Wearable clothing](#wearable-clothing). |
 | `client.image` | Almost always unnecessary. Name the PNG after the item and it is found automatically. Only set this when the file name has to differ. |
+
+### Wearable clothing
+
+Adding `clothing` puts an item **in** a slot. Adding `wear` as well makes the player actually **put it on** — drag it into the slot and it appears on them, drag it out and it comes off again.
+
+```lua
+['flat_cap'] = {
+    label = 'Flat Cap',
+    weight = 150,
+    stack = false,
+    close = false,
+    consume = 0,
+    clothing = 'hat',
+    wear = {
+        male   = { prop = 0, drawable = 15, texture = 0 },
+        female = { prop = 0, drawable = 14, texture = 0 },
+    },
+},
+```
+
+That is the whole thing. `clothing` says which slot it goes in, `wear` says what it looks like.
+
+**Is it a prop or a component?**
+
+GTA splits clothing in two, and you need to know which one you are dealing with:
+
+| | Use | Slots this usually means |
+|---|---|---|
+| **`prop`** | Things worn *on* the body that can be taken off completely | hat, glasses, mask, earpiece |
+| **`component`** | Things that *replace* part of the body model | torso, gloves, legs, shoes, armour, backpack |
+
+Write whichever one applies. Never both:
+
+```lua
+wear = { prop = 0, drawable = 15, texture = 0 },        -- a hat
+wear = { component = 3, drawable = 4, texture = 0 },    -- gloves
+```
+
+The id numbers are GTA's own, not something this fork invents:
+
+| `prop` | | `component` | |
+|---|---|---|---|
+| `0` | Hat | `1` | Mask |
+| `1` | Glasses | `3` | Arms / gloves |
+| `2` | Earpiece | `4` | Legs |
+| `6` | Watch | `5` | Bag / parachute |
+| `7` | Bracelet | `6` | Shoes |
+| | | `7` | Neck / chain |
+| | | `8` | Undershirt |
+| | | `9` | Body armour |
+| | | `11` | Torso / jacket |
+
+**Male and female are different numbers.** Drawable `15` is not the same hat on both body types — the two freemode models have separate clothing lists. Give each one its own numbers:
+
+```lua
+wear = {
+    male   = { component = 3, drawable = 4, texture = 0 },
+    female = { component = 3, drawable = 6, texture = 0 },
+},
+```
+
+If a garment genuinely uses the same number on both, you can skip the split and write it flat. It gets used for everyone:
+
+```lua
+wear = { prop = 0, drawable = 15, texture = 0 },
+```
+
+**`texture` is the colour variant** of that drawable. It defaults to `0`, so leave it out unless you want a specific colour.
+
+**Finding the numbers:** open a clothing store, put the garment on, and note the numbers your clothing menu shows. Most menus display the drawable and texture directly. Otherwise, `illenium-appearance` stores exactly these ids for the player's saved outfit, so anything you can wear in a store you can turn into an item.
+
+**Getting it wrong is safe.** A `wear` block with no valid `prop` or `component`, or with no `drawable`, is dropped when items load and the server console names the item. The item still exists and still fits its slot — it just will not change how anyone looks.
+
+**Things worth knowing**
+
+- Taking a garment off restores whatever the player was wearing underneath, not a blank slot. Remove someone's jacket item and their normal shirt comes back.
+- Changing outfits at a clothing store does not knock equipped items off. The item is re-applied on top of the new outfit.
+- Other players see it. Nothing extra to configure.
+- `wear` only does something if the slot has `wearable` turned on. The eight cosmetic slots are on by default; `armour`, `backpack` and `belt` are off — see [Equipment slots](#equipment-slots).
+- This needs an appearance resource running to work properly. It is built against **`illenium-appearance`**, and uses it to find out what the player is wearing underneath. Without one, garments still apply, but taking them off can restore the wrong thing.
 
 ### Item images
 

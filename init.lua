@@ -390,6 +390,7 @@ do
                 name = slot.name,
                 label = type(slot.label) == 'string' and slot.label or slot.name,
                 side = slot.side == 'right' and 'right' or 'left',
+                wearable = slot.wearable ~= false,
             }
         else
             warn(('ignoring malformed clothing slot at index %s in data/ui.lua'):format(i))

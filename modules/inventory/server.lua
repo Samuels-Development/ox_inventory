@@ -653,8 +653,7 @@ function Inventory.SetSlot(inv, item, count, metadata, slot)
 
 	if not currentSlot then moveFastSlot(inv, slot, nil) end
 
-	if slot == Inventory.GetBackpackSlot() then refreshBackpackDeferred(inv) end
-	if slot == Inventory.GetBeltSlot() then Inventory.RefreshBelt(inv) end
+	Inventory.RefreshEquipment(inv, slot)
 
 	return currentSlot
 end
@@ -880,6 +879,7 @@ function Inventory.Create(id, label, invType, slots, weight, maxWeight, owner, i
 
 	if invType == 'player' then
 		reclaimStrandedSlots(Inventories[self.id])
+		Inventory.RefreshWorn(Inventories[self.id])
 
 		-- The worn bag has to be resolved before the inventory is handed out; it is the only
 		-- source of truth for the `backpack` swap endpoint. No-op unless clothing is enabled.
@@ -1300,6 +1300,82 @@ function Inventory.RefreshBelt(inv)
 	inv.beltWeightBonus = bonus
 
 	Inventory.SetMaxWeight(inv, inv.maxWeight - applied + bonus)
+
+	return true
+end
+
+---@param a table
+---@param b table
+---@return boolean
+local function sameWorn(a, b)
+	for name, item in pairs(a) do
+		if b[name] ~= item then return false end
+	end
+
+	for name in pairs(b) do
+		if a[name] == nil then return false end
+	end
+
+	return true
+end
+
+---@param inv OxInventory?
+---@return table worn map of clothing slot name to the item name occupying it
+function Inventory.GetWorn(inv)
+	inv = Inventory(inv) --[[@as OxInventory]]
+
+	local worn = {}
+
+	if type(inv) ~= 'table' or inv.type ~= 'player' then return worn end
+
+	local slots = Grid.getEquipSlots()
+	local start = Grid.getEquipStart()
+
+	if not slots or not start then return worn end
+
+	for i = 1, #slots do
+		local def = slots[i]
+
+		if def.wearable then
+			local item = inv.items[start + i - 1]
+
+			if item then worn[def.name] = item.name end
+		end
+	end
+
+	return worn
+end
+
+exports('GetWorn', Inventory.GetWorn)
+
+---@param inv OxInventory?
+---@param slot any
+function Inventory.RefreshEquipment(inv, slot)
+	if slot == Inventory.GetBackpackSlot() then refreshBackpackDeferred(inv) end
+	if slot == Inventory.GetBeltSlot() then Inventory.RefreshBelt(inv) end
+
+	Inventory.RefreshWorn(inv, slot)
+end
+
+---@param inv OxInventory?
+---@param slot any? when given, does nothing unless it is a wearable equipment slot
+---@return boolean changed
+function Inventory.RefreshWorn(inv, slot)
+	if type(inv) ~= 'table' or inv.type ~= 'player' then return false end
+
+	if slot ~= nil then
+		local def = Grid.getEquipSlotDef(inv, slot)
+
+		if not def or not def.wearable then return false end
+	end
+
+	local worn = Inventory.GetWorn(inv)
+
+	if inv.worn and sameWorn(inv.worn, worn) then return false end
+
+	inv.worn = worn
+
+	TriggerClientEvent('ox_inventory:setWorn', inv.id, worn)
 
 	return true
 end
@@ -1859,6 +1935,8 @@ function Inventory.RemoveItem(inv, item, count, metadata, slot, ignoreTotal, str
 	if removed > 0 then
 		inv.changed = true
 
+		Inventory.RefreshWorn(inv)
+
 		if inv.player and server.syncInventory then
 			server.syncInventory(inv)
 		end
@@ -2128,6 +2206,8 @@ local function dropItem(source, playerInventory, fromInventory, fromData, data)
 	fromInventory.items[slot] = fromData
 
 	if not fromData then moveFastSlot(fromInventory, slot, nil) end
+
+	Inventory.RefreshWorn(fromInventory, slot)
 
 	if ownSource and slot == playerInventory.weapon then
 		playerInventory.weapon = nil
@@ -2632,6 +2712,9 @@ lib.callback.register('ox_inventory:swapItems', function(source, data)
 				if data.toSlot == beltSlot then Inventory.RefreshBelt(toInventory) end
 			end
 
+			Inventory.RefreshWorn(fromInventory, data.fromSlot)
+			Inventory.RefreshWorn(toInventory, data.toSlot)
+
             CreateThread(function()
                 if sameInventory then
                     fromInventory:syncSlotsWithClients({
@@ -2849,6 +2932,7 @@ function Inventory.Clear(inv, keep)
 	inv.changed = true
 
 	pruneFastSlots(inv, true)
+	Inventory.RefreshWorn(inv)
 
 	inv:syncSlotsWithClients(updateSlots, true)
 

@@ -575,7 +575,7 @@ function server.setPlayerInventory(player, data)
 
 		Inventory.RestoreFastSlots(inv, server.loadFastSlots(inv))
 
-		TriggerClientEvent('ox_inventory:setPlayerInventory', player.source, Inventory.Drops, inventory, totalWeight, inv.player, theme, prefs, Inventory.GetFastSlots(inv))
+		TriggerClientEvent('ox_inventory:setPlayerInventory', player.source, Inventory.Drops, inventory, totalWeight, inv.player, theme, prefs, Inventory.GetFastSlots(inv), Inventory.GetWorn(inv))
 	end
 end
 exports('setPlayerInventory', server.setPlayerInventory)
