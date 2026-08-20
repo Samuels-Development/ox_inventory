@@ -228,10 +228,12 @@ That is the whole thing. `clothing` says which slot it goes in, `wear` says what
 
 GTA splits clothing in two, and you need to know which one you are dealing with:
 
-| | Use | Slots this usually means |
+| | Use | Slots this means |
 |---|---|---|
-| **`prop`** | Things worn *on* the body that can be taken off completely | hat, glasses, mask, earpiece |
-| **`component`** | Things that *replace* part of the body model | torso, gloves, legs, shoes, armour, backpack |
+| **`prop`** | Things worn *on* the body, which can be taken off leaving nothing behind | hat, glasses, earpiece |
+| **`component`** | Things that *replace* part of the body model, so removing one reveals whatever is underneath | mask, torso, gloves, legs, shoes, armour, backpack |
+
+Masks catch people out: they look like something you put on, but GTA models them as a component.
 
 Write whichever one applies. Never both:
 
@@ -240,7 +242,35 @@ wear = { prop = 0, drawable = 15, texture = 0 },        -- a hat
 wear = { component = 3, drawable = 4, texture = 0 },    -- gloves
 ```
 
-The id numbers are GTA's own, not something this fork invents:
+**What to write for each slot**
+
+This is the table you actually want. Find the slot your item goes in, and write that line:
+
+| Slot | Write | Covers |
+|---|---|---|
+| `hat` | `prop = 0` | Hats, caps, helmets |
+| `glasses` | `prop = 1` | Glasses, goggles |
+| `earpiece` | `prop = 2` | Earpieces, earrings |
+| `mask` | `component = 1` | Masks, balaclavas, bandanas |
+| `gloves` | `component = 3` | Gloves — but see the note below |
+| `legs` | `component = 4` | Trousers, shorts, skirts |
+| `shoes` | `component = 6` | Shoes, boots |
+| `torso` | `component = 11` | Jackets, shirts, hoodies |
+| `backpack` | `component = 5` | Bags, parachutes |
+| `armour` | `component = 9` | Body armour |
+| `belt` | — | GTA has no belt id; see the note below |
+
+Three of those need a word of warning:
+
+- **`gloves` is really the whole arms.** Component `3` controls hands *and* sleeve length together, so a pair of gloves also decides whether the player's sleeves are long or short. Pick a drawable whose sleeves suit the jackets people wear, or accept that it changes both.
+- **`torso` has a second layer underneath it.** Component `11` is the outer top. Component `8` is the undershirt below it — use that one for t-shirts that should still show when a jacket is on.
+- **`belt` has no id of its own.** GTA does not model belts separately; a belt has to ride `torso` or `legs`, which means it fights whatever is in those slots. That is why the belt slot ships with `wearable` off.
+
+Nothing enforces these pairings. The slot name is just a label you chose in `data/ui.lua` — the id in `wear` is what actually changes the model. The table is convention, not a rule, so a custom slot can use any id you like.
+
+**The full id list**
+
+These are GTA’s own ids, useful if you are adding a custom slot:
 
 | `prop` | | `component` | |
 |---|---|---|---|
