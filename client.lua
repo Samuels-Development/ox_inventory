@@ -1976,6 +1976,9 @@ RegisterNUICallback('exit', function(_, cb)
 end)
 
 RegisterNUICallback('lockControls', function(data, cb)
+    if not invOpen then
+        return cb(1)
+    end
 	SetNuiFocusKeepInput(not data)
 	cb(1)
 end)
